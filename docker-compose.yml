@@ -1,0 +1,20 @@
+services:
+  pulse:
+    build: .
+    container_name: pulse-bot
+    env_file: .env
+    volumes:
+      # Persist SQLite database across restarts
+      - ./data:/app/data
+      # Persist WhatsApp session (avoids re-scanning QR code)
+      - ./whatsapp-auth:/app/.wwebjs_auth
+    restart: unless-stopped
+    # Uncomment to limit resources
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 1G
+    #       cpus: '1.0'
+    environment:
+      - NODE_ENV=production
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
