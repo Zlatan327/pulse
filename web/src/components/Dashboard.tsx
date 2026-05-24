@@ -33,23 +33,30 @@ export default function Dashboard({ session, linkedAccounts, telegramBotUsername
   }, [session, linkedAccounts.telegram, telegramBotUsername]);
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-50 flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-3xl flex flex-col gap-8">
-        <header className="flex flex-col gap-2">
-          <h1 className="text-4xl font-extrabold tracking-tight">Pulse</h1>
-          <p className="text-zinc-400 text-lg">
+    <main className="min-h-screen flex flex-col md:flex-row items-center justify-center p-6 lg:p-12"
+          style={{ background: 'linear-gradient(135deg, #09090b 50%, #0c1a3b 50%)' }}>
+      
+      <div className="w-full max-w-5xl flex flex-col md:flex-row gap-12 items-center">
+        
+        {/* Left Side: Brand & Logo */}
+        <header className="flex-1 flex flex-col gap-4 text-center md:text-left z-10">
+          <h1 className="text-7xl lg:text-9xl font-bold tracking-tight text-white font-[family-name:var(--font-playfair)]">
+            <span className="text-red-600">P</span>ulze
+          </h1>
+          <p className="text-zinc-300 text-xl font-light tracking-wide max-w-sm mx-auto md:mx-0">
             Unified Identity. Link your platforms once, access your AI everywhere.
           </p>
         </header>
 
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Right Side: Identity Cards */}
+        <section className="flex-1 w-full max-w-md flex flex-col gap-4 z-10">
           {/* Main Account Card */}
-          <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-xl flex flex-col gap-4 shadow-sm">
+          <div className="bg-zinc-950/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-2xl flex flex-col gap-4 shadow-2xl">
             <div className="flex items-center gap-3">
-              <div className="bg-zinc-800 p-2 rounded-lg">
-                <Settings2 className="w-5 h-5 text-zinc-300" />
+              <div className="bg-zinc-900 border border-zinc-800 p-2.5 rounded-xl">
+                <Settings2 className="w-5 h-5 text-blue-400" />
               </div>
-              <h2 className="text-xl font-semibold">Primary Account</h2>
+              <h2 className="text-xl font-semibold text-zinc-100">Primary Account</h2>
             </div>
 
             {!session ? (
