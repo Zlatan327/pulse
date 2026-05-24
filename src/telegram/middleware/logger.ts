@@ -81,7 +81,8 @@ export async function messageLogger(ctx: Context, next: NextFunction): Promise<v
         await ctx.replyWithChatAction('record_voice');
         const history = getRecentMessages(String(ctx.chat.id), 'telegram', 15);
         const { handleVoiceQuery } = await import('../../core/index.js');
-        const reply = await handleVoiceQuery(transcription.text, history);
+        const requester = msg.from?.first_name || msg.from?.username || 'user';
+        const reply = await handleVoiceQuery(transcription.text, history, requester);
         
         let sentMsg;
         if (reply.audio) {

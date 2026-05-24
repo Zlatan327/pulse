@@ -10,7 +10,8 @@ const genAI = new GoogleGenerativeAI(config.gemini.apiKey);
  */
 export async function handleVoiceQuery(
   query: string,
-  history: PlatformMessage[]
+  history: PlatformMessage[],
+  requesterName?: string
 ): Promise<{ text: string; audio?: AudioResult }> {
   
   // Format history for context
@@ -22,7 +23,8 @@ export async function handleVoiceQuery(
     .join('\n');
 
   const systemInstruction = `You are Pulse, an intelligent AI companion in a group chat. 
-The user is asking you a direct follow-up question via voice.
+The user currently speaking to you is: ${requesterName || 'a group member'}.
+They are asking you a direct follow-up question via voice.
 
 Here is the recent context of the chat:
 ${transcript}

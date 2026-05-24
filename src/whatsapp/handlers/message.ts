@@ -82,7 +82,9 @@ async function processMessage(client: WAClient, msg: WAMessage): Promise<void> {
         if (quotedMsg.fromMe) {
           const history = getRecentMessages(chat.id._serialized, 'whatsapp', 15);
           const { handleVoiceQuery } = await import('../../core/index.js');
-          const reply = await handleVoiceQuery(transcription.text, history);
+          const requesterContact = await msg.getContact();
+          const requester = requesterContact.pushname || requesterContact.name || requesterContact.number || 'user';
+          const reply = await handleVoiceQuery(transcription.text, history, requester);
           
           let sentMsg;
           if (reply.audio) {

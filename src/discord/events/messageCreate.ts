@@ -78,7 +78,8 @@ export function handleMessageCreate(client: Client): void {
                 
                 // Route to Voice Agent
                 const { handleVoiceQuery } = await import('../../core/index.js');
-                const reply = await handleVoiceQuery(transcription.text, history);
+                const requester = message.author.displayName || message.author.username;
+                const reply = await handleVoiceQuery(transcription.text, history, requester);
                 
                 let sentMsg;
                 if (reply.audio) {
