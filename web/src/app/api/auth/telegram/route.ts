@@ -1,11 +1,7 @@
 import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import Database from "better-sqlite3";
-import path from "path";
-
-const dbPath = path.resolve(process.cwd(), "../data/pulse.db");
-const db = new Database(dbPath);
+import db from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -48,14 +44,14 @@ export async function GET(req: NextRequest) {
   try {
     // Auth.js uses standard 'accounts' table
     const stmt = db.prepare(`
-      INSERT INTO accounts (userId, type, provider, providerAccountId, access_token)
-      VALUES (?, 'oauth', 'telegram', ?, ?)
+      INSERT INTO accounts (id, userId, provider, providerAccountId, access_token)
+      VALUES (?, ?, 'telegram', ?, ?)
       ON CONFLICT(provider, providerAccountId) DO UPDATE SET userId = excluded.userId
     `);
     
     // Some older versions of SQLite / Auth.js schema might not have ON CONFLICT so we'll do an upsert safely
     // Actually, BetterSQLite3 adapter creates specific tables. Let's try to just insert.
-    stmt.run(session.user.id, telegramId, username);
+    stmt.run(crypto.randomUUID(), session.user.id, telegramId, username);
 
     return NextResponse.redirect(new URL("/", req.url));
   } catch (error: any) {

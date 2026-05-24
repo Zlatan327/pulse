@@ -1,10 +1,6 @@
 import { auth } from "@/auth";
 import Dashboard from "@/components/Dashboard";
-import Database from "better-sqlite3";
-import path from "path";
-
-const dbPath = path.resolve(process.cwd(), "../data/pulse.db");
-const db = new Database(dbPath);
+import db from "@/lib/db";
 
 export default async function Home() {
   const session = await auth();

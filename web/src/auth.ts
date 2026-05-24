@@ -1,12 +1,8 @@
 import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
 import Twitter from "next-auth/providers/twitter"
-import Database from "better-sqlite3"
-import path from "path"
+import db from "./lib/db"
 import { randomUUID } from "crypto"
-
-const dbPath = path.resolve(process.cwd(), "../data/pulse.db");
-const db = new Database(dbPath);
 
 // Ensure accounts table exists
 db.exec(`

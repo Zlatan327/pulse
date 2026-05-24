@@ -53,7 +53,7 @@ export default function Dashboard({ session, linkedAccounts, telegramBotUsername
   // -------------------------
   // LOGGED OUT EXPERIENCE
   // -------------------------
-  if (!session) {
+  if (!session?.user) {
     return (
       <main className="min-h-screen relative flex flex-col items-center justify-center p-6 lg:p-12 overflow-hidden bg-zinc-950">
         
