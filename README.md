@@ -60,7 +60,7 @@ Type `/catchup` in any group chat. Pulse drops a **30-second audio clip** summar
 
 ---
 
-## 🎬 Hackathon Video Demo Flow
+## 🎬 Demonstration Flow
 
 To demonstrate Pulse's full capabilities, try this flow:
 1. **Group Chaos:** Have team members send various messages, documents, and foreign language voice notes in the chat.
