@@ -16,6 +16,7 @@ export function initDatabase(): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      external_id TEXT,
       platform TEXT NOT NULL,
       chat_id TEXT NOT NULL,
       user_id TEXT NOT NULL,
@@ -29,6 +30,18 @@ export function initDatabase(): void {
 
     CREATE INDEX IF NOT EXISTS idx_messages_chat_time 
       ON messages(chat_id, platform, timestamp DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_messages_external_id 
+      ON messages(external_id, platform);
+  `);
+
+  try {
+    db.exec(`ALTER TABLE messages ADD COLUMN external_id TEXT;`);
+  } catch (e) {
+    // Column likely already exists
+  }
+
+  db.exec(`
 
     CREATE INDEX IF NOT EXISTS idx_messages_platform 
       ON messages(platform);
@@ -82,10 +95,11 @@ export function initDatabase(): void {
 /** Log a message to the database */
 export function logMessage(msg: PlatformMessage): void {
   const stmt = db.prepare(`
-    INSERT INTO messages (platform, chat_id, user_id, username, text, message_type, file_path, timestamp)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO messages (external_id, platform, chat_id, user_id, username, text, message_type, file_path, timestamp)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   stmt.run(
+    msg.id,
     msg.platform,
     msg.chatId,
     msg.userId,
@@ -110,7 +124,7 @@ export function getRecentMessages(
   if (since) {
     query = `
       SELECT * FROM messages 
-      WHERE chat_id = ? AND platform = ? AND timestamp > ?
+      WHERE chat_id = ? AND platform = ? AND timestamp >= ?
       ORDER BY timestamp ASC
       LIMIT ?
     `;
@@ -131,7 +145,7 @@ export function getRecentMessages(
   if (!since) rows.reverse();
 
   return rows.map(row => ({
-    id: String(row.id),
+    id: row.external_id || String(row.id),
     platform: row.platform as Platform,
     chatId: row.chat_id,
     userId: row.user_id,
@@ -147,14 +161,14 @@ export function getRecentMessages(
 export function getMessageById(id: string, platform: Platform): PlatformMessage | null {
   const row = db.prepare(`
     SELECT * FROM messages 
-    WHERE id = ? AND platform = ?
+    WHERE external_id = ? AND platform = ?
     LIMIT 1
   `).get(id, platform) as any;
 
   if (!row) return null;
 
   return {
-    id: String(row.id),
+    id: row.external_id || String(row.id),
     platform: row.platform as Platform,
     chatId: row.chat_id,
     userId: row.user_id,

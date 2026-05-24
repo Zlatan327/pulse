@@ -17,8 +17,6 @@ import {
 } from '../../core/index.js';
 import type { CatchupMode } from '../../core/types.js';
 
-import { getMessageById } from '../../core/index.js';
-
 function parseTimeframeToDate(timeStr: string): Date | null {
   const match = timeStr.match(/^(\d+)\s*(m|min|mins|minutes|h|hr|hrs|hours|d|day|days)$/i);
   if (!match) return null;
@@ -68,12 +66,9 @@ export async function handleCatchup(ctx: Context): Promise<void> {
     }
   }
 
-  // If replied to a message, prioritize its timestamp
+  // If replied to a message, prioritize its timestamp directly from Telegram
   if (ctx.message?.reply_to_message) {
-    const repliedMsg = getMessageById(String(ctx.message.reply_to_message.message_id), 'telegram');
-    if (repliedMsg) {
-      sinceDate = repliedMsg.timestamp;
-    }
+    sinceDate = new Date(ctx.message.reply_to_message.date * 1000);
   }
 
   // Check if we have enough messages
