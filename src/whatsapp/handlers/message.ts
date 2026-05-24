@@ -17,8 +17,9 @@ import type { PlatformMessage } from '../../core/types.js';
 import { handleCatchup } from '../commands/catchup.js';
 import fs from 'fs';
 import path from 'path';
-// @ts-ignore
-import pdfParse from 'pdf-parse';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pdfParse = require('pdf-parse');
 
 /** Register message handlers for WhatsApp */
 export function registerMessageHandlers(client: WAClient): void {

@@ -1,5 +1,5 @@
 /** Supported chat platforms */
-export type Platform = 'discord' | 'telegram' | 'whatsapp';
+export type Platform = 'discord' | 'telegram' | 'whatsapp' | 'x';
 
 /** Catchup persona modes */
 export type CatchupMode = 'standard' | 'fun' | 'roast' | 'story' | 'urgent' | 'manager' | 'empathic' | 'for-me';

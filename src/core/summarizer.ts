@@ -72,7 +72,7 @@ Your task is to create a spoken summary that will be converted to audio. Follow 
 - End with any pending questions or items that need the listener's attention`;
 
   const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-2.5-flash',
     systemInstruction: systemPrompt,
   });
 
@@ -96,7 +96,7 @@ Your task is to create a spoken summary that will be converted to audio. Follow 
 /** Extract action items from a conversation transcript */
 async function extractTasks(transcript: string): Promise<TaskItem[]> {
   const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-2.5-flash',
     systemInstruction: `Extract action items and tasks from this group chat conversation.`,
     generationConfig: {
       responseMimeType: 'application/json',

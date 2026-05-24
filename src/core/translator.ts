@@ -35,7 +35,7 @@ export async function translateText(
   const toName = getLanguageName(target);
 
   const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-2.5-flash',
     systemInstruction: `You are a professional translator. Translate the following text from ${fromName} to ${toName}. Maintain the original tone, meaning, and nuance. Return ONLY the translated text, nothing else.`,
   });
 

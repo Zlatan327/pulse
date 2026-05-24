@@ -16,8 +16,9 @@ import type { PlatformMessage } from '../../core/types.js';
 import { AttachmentBuilder } from 'discord.js';
 import fs from 'fs';
 import path from 'path';
-// @ts-ignore
-import pdfParse from 'pdf-parse';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pdfParse = require('pdf-parse');
 
 /** Download a file from a URL to a local path */
 async function downloadFile(url: string, outputPath: string): Promise<void> {

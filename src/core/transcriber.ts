@@ -35,7 +35,7 @@ export async function transcribeAudio(filePath: string): Promise<TranscriptionRe
     };
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash',
       systemInstruction: 'Listen to this audio. Transcribe the spoken text exactly and detect the language. Do not output anything else.',
       generationConfig: {
         responseMimeType: 'application/json',

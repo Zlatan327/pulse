@@ -37,6 +37,11 @@ export const config = {
   whatsapp: {
     enabled: process.env.WHATSAPP_ENABLED === 'true',
   },
+  x: {
+    username: process.env.X_USERNAME || '',
+    password: process.env.X_PASSWORD || '',
+    email: process.env.X_EMAIL || '',
+  },
 
   // General
   enabledPlatforms: optional('ENABLED_PLATFORMS', 'discord').split(',').map(p => p.trim().toLowerCase()),
@@ -63,6 +68,11 @@ export function validatePlatform(platform: string): void {
       break;
     case 'whatsapp':
       if (!config.whatsapp.enabled) throw new Error('❌ WHATSAPP_ENABLED must be true to run the WhatsApp adapter');
+      break;
+    case 'x':
+      if (!config.x.username || !config.x.password) {
+        throw new Error('❌ X_USERNAME and X_PASSWORD are required to run the X adapter');
+      }
       break;
   }
 }

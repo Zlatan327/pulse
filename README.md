@@ -79,6 +79,55 @@ To demonstrate Pulse's full capabilities, try this flow:
 - API keys for:
   - [Google AI Studio](https://aistudio.google.com/app/apikey) (Gemini 1.5 Flash)
   - [ElevenLabs](https://elevenlabs.io) (Text-to-Speech)
+- **Discord**: Channel commands (`/catchup`)
+- **Telegram**: Group commands (`/catchup fun`)
+- **WhatsApp**: Tag commands (`@PulseBot summarize`)
+- **X (Twitter)**: Mention threads (`@PulseBot summary`)
+
+## 🛠️ Quick Setup
+
+1. Clone the repo and install dependencies:
+```bash
+git clone https://github.com/Zlatan327/pulse.git
+cd pulse
+npm install
+```
+
+2. Copy the environment template:
+```bash
+cp .env.example .env
+```
+
+3. Add your API keys and configure your platforms:
+```env
+# Required AI APIs
+GEMINI_API_KEY=your_gemini_key
+ELEVENLABS_API_KEY=your_elevenlabs_key
+ELEVENLABS_VOICE_ID=your_voice_id
+
+# Choose which platforms to run
+ENABLED_PLATFORMS=discord,telegram,whatsapp,x
+
+# Discord
+DISCORD_TOKEN=your_token
+DISCORD_CLIENT_ID=your_client_id
+
+# Telegram
+TELEGRAM_BOT_TOKEN=your_bot_token
+
+# WhatsApp (requires Chromium)
+WHATSAPP_ENABLED=true
+
+# X (Twitter) (requires a dedicated user account)
+X_USERNAME=pulsebot
+X_PASSWORD=password123
+X_EMAIL=pulsebot@example.com
+```
+
+4. Start the engine:
+```bash
+npm start
+```
 
 ### Option 1: Docker (Recommended)
 

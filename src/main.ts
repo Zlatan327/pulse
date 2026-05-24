@@ -73,6 +73,21 @@ async function main(): Promise<void> {
     );
   }
 
+  // Start X adapter
+  if (platforms.includes('x')) {
+    startPromises.push(
+      (async () => {
+        try {
+          const { startX } = await import('./x/index.js');
+          await startX();
+          console.log('✅ X (Twitter) adapter started');
+        } catch (error) {
+          console.error('❌ Failed to start X (Twitter) adapter:', error);
+        }
+      })()
+    );
+  }
+
   if (startPromises.length === 0) {
     console.warn('⚠️  No platforms enabled! Set ENABLED_PLATFORMS in your .env file.');
     console.warn('   Example: ENABLED_PLATFORMS=discord,telegram,whatsapp');

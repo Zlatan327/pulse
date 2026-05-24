@@ -16,10 +16,10 @@ export async function startTelegram(): Promise<Bot> {
   // Register commands
   bot.command('catchup', handleCatchup);
 
-  // Set bot commands menu
-  await bot.api.setMyCommands([
+  // Set bot commands menu (fire-and-forget — don't block startup)
+  bot.api.setMyCommands([
     { command: 'catchup', description: 'Get an audio summary of recent messages' },
-  ]);
+  ]).catch((err) => console.warn('⚠️ Could not set commands menu (non-critical):', err.message));
 
   // Error handler
   bot.catch((err) => {

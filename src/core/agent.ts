@@ -36,7 +36,7 @@ Your job is to answer their question conversationally based on the chat history.
 - If they ask you to perform an action you cannot do (like sending an email or booking a flight), politely decline.`;
 
   const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-2.5-flash',
     systemInstruction,
   });
 
