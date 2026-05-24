@@ -24,10 +24,12 @@ db.exec(`
 `);
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  trustHost: true,
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      checks: ["none"],
     }),
     Twitter({
       clientId: process.env.TWITTER_CLIENT_ID,

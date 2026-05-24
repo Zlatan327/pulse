@@ -146,9 +146,9 @@ export async function startX(): Promise<Scraper> {
           let telegramLinked = false;
           try {
             // Need a separate DB connection or import the existing one
-            // We'll require better-sqlite3 directly since we need custom queries
-            const Database = require('better-sqlite3');
-            const path = require('path');
+            // Import dynamically since we are in an ES module
+            const { default: Database } = await import('better-sqlite3');
+            const path = await import('path');
             const dbPath = path.resolve(config.dataDir, 'pulse.db');
             const db = new Database(dbPath);
 
@@ -168,8 +168,8 @@ export async function startX(): Promise<Scraper> {
               console.log(`✅ Linked Telegram account found (ID: ${linkedAccount.telegramId})`);
               
               // Import the telegram bot dynamically to avoid circular dependencies
-              const { bot } = require('../telegram/index.js');
-              const { InputFile } = require('grammy');
+              const { bot } = await import('../telegram/index.js');
+              const { InputFile } = await import('grammy');
               
               if (bot) {
                 // Send the audio via Telegram DM!
