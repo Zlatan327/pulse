@@ -10,6 +10,10 @@
  */
 
 import { config, initDatabase } from './core/index.js';
+import dns from 'dns';
+
+// Fix for Node.js undici fetch IPv6 timeout issues on Windows
+dns.setDefaultResultOrder('ipv4first');
 
 async function main(): Promise<void> {
   console.log('');
@@ -53,21 +57,6 @@ async function main(): Promise<void> {
           console.log('✅ Telegram adapter started');
         } catch (error) {
           console.error('❌ Failed to start Telegram adapter:', error);
-        }
-      })()
-    );
-  }
-
-  // Start WhatsApp adapter
-  if (platforms.includes('whatsapp')) {
-    startPromises.push(
-      (async () => {
-        try {
-          const { startWhatsApp } = await import('./whatsapp/index.js');
-          await startWhatsApp();
-          console.log('✅ WhatsApp adapter started');
-        } catch (error) {
-          console.error('❌ Failed to start WhatsApp adapter:', error);
         }
       })()
     );

@@ -17,6 +17,20 @@ import {
 } from '../../core/index.js';
 import type { CatchupMode } from '../../core/types.js';
 
+import { getMessageById } from '../../core/index.js';
+
+function parseTimeframeToDate(timeStr: string): Date | null {
+  const match = timeStr.match(/^(\d+)\s*(m|min|mins|minutes|h|hr|hrs|hours|d|day|days)$/i);
+  if (!match) return null;
+  const val = parseInt(match[1]);
+  const unit = match[2].toLowerCase();
+  let ms = 0;
+  if (unit.startsWith('m')) ms = val * 60 * 1000;
+  else if (unit.startsWith('h')) ms = val * 60 * 60 * 1000;
+  else if (unit.startsWith('d')) ms = val * 24 * 60 * 60 * 1000;
+  return new Date(Date.now() - ms);
+}
+
 export async function handleCatchup(ctx: Context): Promise<void> {
   if (!ctx.chat) return;
 
@@ -31,6 +45,8 @@ export async function handleCatchup(ctx: Context): Promise<void> {
   const userSettings = ctx.from?.id ? getUserSettingsByPlatformId('telegram', String(ctx.from.id)) : null;
   
   let mode: CatchupMode = 'standard';
+  let targetUser: string | undefined;
+  let sinceDate: Date | undefined;
   
   if (userSettings?.voiceStyle) {
     const style = userSettings.voiceStyle;
@@ -39,12 +55,24 @@ export async function handleCatchup(ctx: Context): Promise<void> {
     else if (style.includes('Storyteller')) mode = 'story';
   }
 
-  // Allow override via command args
+  // Parse arguments for mode, target user, and timeframe
   const modes = ['standard', 'fun', 'roast', 'story', 'urgent', 'manager', 'empathic', 'for-me'];
   for (const arg of args) {
     if (modes.includes(arg.toLowerCase())) {
       mode = arg.toLowerCase() as CatchupMode;
-      break;
+    } else if (arg.startsWith('@')) {
+      targetUser = arg.substring(1);
+    } else {
+      const parsedDate = parseTimeframeToDate(arg);
+      if (parsedDate) sinceDate = parsedDate;
+    }
+  }
+
+  // If replied to a message, prioritize its timestamp
+  if (ctx.message?.reply_to_message) {
+    const repliedMsg = getMessageById(String(ctx.message.reply_to_message.message_id), 'telegram');
+    if (repliedMsg) {
+      sinceDate = repliedMsg.timestamp;
     }
   }
 
@@ -66,13 +94,17 @@ export async function handleCatchup(ctx: Context): Promise<void> {
   await ctx.reply('⏳ Catching up on recent messages...');
 
   try {
-    // Get messages since last catchup, or recent messages
-    const lastCatchup = getLastCatchup(chatId, 'telegram');
+    // Get messages since last catchup (if no explicit timeframe/reply provided), or recent messages
+    if (!sinceDate) {
+      const lastCatchup = getLastCatchup(chatId, 'telegram');
+      if (lastCatchup) sinceDate = lastCatchup.timestamp;
+    }
+
     const messages = getRecentMessages(
       chatId,
       'telegram',
       config.summaryMaxMessages,
-      lastCatchup?.timestamp
+      sinceDate
     );
 
     if (messages.length === 0) {
@@ -81,7 +113,7 @@ export async function handleCatchup(ctx: Context): Promise<void> {
     }
 
     // Generate summary
-    const summary = await summarizeMessages(messages, mode, requester);
+    const summary = await summarizeMessages(messages, mode, requester, targetUser);
 
     // Generate audio
     const audio = await generateSpeech(summary.text);

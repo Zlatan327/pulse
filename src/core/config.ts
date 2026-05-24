@@ -34,9 +34,6 @@ export const config = {
   telegram: {
     botToken: process.env.TELEGRAM_BOT_TOKEN || '',
   },
-  whatsapp: {
-    enabled: process.env.WHATSAPP_ENABLED === 'true',
-  },
   x: {
     username: process.env.X_USERNAME || '',
     password: process.env.X_PASSWORD || '',
@@ -65,9 +62,6 @@ export function validatePlatform(platform: string): void {
       break;
     case 'telegram':
       if (!config.telegram.botToken) throw new Error('❌ TELEGRAM_BOT_TOKEN is required to run the Telegram adapter');
-      break;
-    case 'whatsapp':
-      if (!config.whatsapp.enabled) throw new Error('❌ WHATSAPP_ENABLED must be true to run the WhatsApp adapter');
       break;
     case 'x':
       if (!config.x.username || !config.x.password) {

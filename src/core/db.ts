@@ -143,6 +143,29 @@ export function getRecentMessages(
   }));
 }
 
+/** Get a specific message by its platform ID (useful for replies) */
+export function getMessageById(id: string, platform: Platform): PlatformMessage | null {
+  const row = db.prepare(`
+    SELECT * FROM messages 
+    WHERE id = ? AND platform = ?
+    LIMIT 1
+  `).get(id, platform) as any;
+
+  if (!row) return null;
+
+  return {
+    id: String(row.id),
+    platform: row.platform as Platform,
+    chatId: row.chat_id,
+    userId: row.user_id,
+    username: row.username,
+    text: row.text,
+    messageType: row.message_type,
+    filePath: row.file_path,
+    timestamp: new Date(row.timestamp),
+  };
+}
+
 /** Get the last catchup timestamp for a chat */
 export function getLastCatchup(chatId: string, platform: Platform): CatchupEntry | null {
   const row = db.prepare(`

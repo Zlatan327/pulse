@@ -13,6 +13,18 @@ import {
 } from '../../core/index.js';
 import type { PlatformMessage, CatchupMode } from '../../core/types.js';
 
+function parseTimeframeToDate(timeStr: string): Date | null {
+  const match = timeStr.match(/^(\d+)\s*(m|min|mins|minutes|h|hr|hrs|hours|d|day|days)$/i);
+  if (!match) return null;
+  const val = parseInt(match[1]);
+  const unit = match[2].toLowerCase();
+  let ms = 0;
+  if (unit.startsWith('m')) ms = val * 60 * 1000;
+  else if (unit.startsWith('h')) ms = val * 60 * 60 * 1000;
+  else if (unit.startsWith('d')) ms = val * 24 * 60 * 60 * 1000;
+  return new Date(Date.now() - ms);
+}
+
 export async function handleCatchup(interaction: ChatInputCommandInteraction): Promise<void> {
   await interaction.deferReply();
 
@@ -20,6 +32,11 @@ export async function handleCatchup(interaction: ChatInputCommandInteraction): P
   const requestedLimit = interaction.options.getInteger('messages') || config.summaryMaxMessages;
   const mode = (interaction.options.getString('mode') as CatchupMode) || 'standard';
   const requester = interaction.user.displayName || interaction.user.username;
+  
+  const timeframeStr = interaction.options.getString('timeframe');
+  const targetUserObj = interaction.options.getUser('user');
+  const targetUser = targetUserObj ? (targetUserObj.displayName || targetUserObj.username) : undefined;
+  let sinceDate = (timeframeStr ? parseTimeframeToDate(timeframeStr) : undefined) || undefined;
 
   // Check if we have enough messages
   const totalMessages = getMessageCount(chatId, 'discord');
@@ -62,7 +79,7 @@ export async function handleCatchup(interaction: ChatInputCommandInteraction): P
         return;
       }
 
-      await generateAndSendSummary(interaction, platformMessages, chatId, mode, requester);
+      await generateAndSendSummary(interaction, platformMessages, chatId, mode, requester, targetUser);
     } catch (error) {
       console.error('❌ Failed to fetch Discord messages:', error);
       await interaction.editReply('❌ Failed to fetch messages. Make sure I have the "Read Message History" permission.');
@@ -71,12 +88,16 @@ export async function handleCatchup(interaction: ChatInputCommandInteraction): P
   }
 
   // Get messages since last catchup, or recent messages
-  const lastCatchup = getLastCatchup(chatId, 'discord');
+  if (!sinceDate) {
+    const lastCatchup = getLastCatchup(chatId, 'discord');
+    if (lastCatchup) sinceDate = lastCatchup.timestamp;
+  }
+  
   const messages = getRecentMessages(
     chatId,
     'discord',
     requestedLimit,
-    lastCatchup?.timestamp
+    sinceDate
   );
 
   if (messages.length === 0) {
@@ -84,7 +105,7 @@ export async function handleCatchup(interaction: ChatInputCommandInteraction): P
     return;
   }
 
-  await generateAndSendSummary(interaction, messages, chatId, mode, requester);
+  await generateAndSendSummary(interaction, messages, chatId, mode, requester, targetUser);
 }
 
 async function generateAndSendSummary(
@@ -92,13 +113,14 @@ async function generateAndSendSummary(
   messages: PlatformMessage[],
   chatId: string,
   mode: CatchupMode,
-  requester: string
+  requester: string,
+  targetUser?: string
 ): Promise<void> {
   // Update status
   await interaction.editReply(`⏳ Summarizing ${messages.length} messages...`);
 
   // Generate summary
-  const summary = await summarizeMessages(messages, mode, requester);
+  const summary = await summarizeMessages(messages, mode, requester, targetUser);
 
   // Generate audio
   const audio = await generateSpeech(summary.text);

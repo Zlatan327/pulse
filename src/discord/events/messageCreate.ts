@@ -69,6 +69,40 @@ export function handleMessageCreate(client: Client): void {
           if (message.reference && message.reference.messageId) {
             try {
               const repliedMessage = await message.channel.messages.fetch(message.reference.messageId);
+              
+              // Feature: Reply-based catchup (@PulseBot summarize)
+              if (message.mentions.has(client.user?.id || '') && message.content.toLowerCase().includes('summarize')) {
+                if ('sendTyping' in message.channel && typeof message.channel.sendTyping === 'function') {
+                  await message.channel.sendTyping();
+                }
+                
+                const { summarizeMessages, generateSpeech, formatTaskChecklist, logSummary } = await import('../../core/index.js');
+                
+                // Fetch messages from the replied message's timestamp forward
+                const recentHistory = getRecentMessages(message.channelId, 'discord', 100, repliedMessage.createdAt);
+                
+                if (recentHistory.length > 0) {
+                  const requester = message.author.displayName || message.author.username;
+                  const summary = await summarizeMessages(recentHistory, 'standard', requester);
+                  const audio = await generateSpeech(summary.text);
+                  
+                  const audioFile = new AttachmentBuilder(audio.buffer, { name: 'catchup.mp3' });
+                  let replyContent = `🔊 **Pulse Catchup** — ${summary.messageCount} messages\n📅 ${summary.timespan.from.toLocaleString()} → ${summary.timespan.to.toLocaleString()}`;
+                  
+                  const taskList = formatTaskChecklist(summary.tasks);
+                  if (taskList) replyContent += `\n\n${taskList}`;
+                  
+                  await message.reply({ content: replyContent, files: [audioFile] });
+                  
+                  logSummary(message.author.id, 'discord', summary.title || 'Contextual Summary', Math.round(audio.durationMs / 1000));
+                  cleanupAudioFile(audio.filePath);
+                }
+                
+                cleanupTempFile(voicePath);
+                continue;
+              }
+
+              // Normal voice reply to bot
               if (repliedMessage.author.id === client.user?.id) {
                 if ('sendTyping' in message.channel && typeof message.channel.sendTyping === 'function') {
                   await message.channel.sendTyping();

@@ -42,7 +42,7 @@ function getModePrompt(mode: CatchupMode, requesterName?: string): string {
 }
 
 /** Summarize a batch of messages into a spoken summary */
-export async function summarizeMessages(messages: PlatformMessage[], mode: CatchupMode = 'standard', requesterName?: string): Promise<ChatSummary> {
+export async function summarizeMessages(messages: PlatformMessage[], mode: CatchupMode = 'standard', requesterName?: string, targetUser?: string): Promise<ChatSummary> {
   if (messages.length === 0) {
     return {
       text: 'There are no new messages to catch up on.',
@@ -57,10 +57,15 @@ export async function summarizeMessages(messages: PlatformMessage[], mode: Catch
 
   const modeInstruction = getModePrompt(mode, requesterName);
 
+  let targetUserInstruction = '';
+  if (targetUser) {
+    targetUserInstruction = `\n- HIGH PRIORITY: The user specifically requested a summary focusing on what "${targetUser}" said or did. Prioritize their actions, statements, and mentions heavily.`;
+  }
+
   const systemPrompt = `You are Pulse, an AI assistant that creates concise audio summaries of group chat conversations.
 
 Your task is to create a spoken summary that will be converted to audio. Follow these rules:
-- ${modeInstruction}
+- ${modeInstruction}${targetUserInstruction}
 - Keep it under ${Math.round(targetWords)} words (approximately ${config.summaryTargetDuration} seconds when spoken)
 - Start with a brief time context (e.g., "In the last few hours..." or "Since you've been away...")
 - Highlight KEY decisions, important updates, and action items

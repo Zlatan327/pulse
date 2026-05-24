@@ -13,22 +13,25 @@ const commands = [
         .setMinValue(5)
         .setMaxValue(500)
     )
-    .addStringOption(option =>
-      option
-        .setName('mode')
-        .setDescription('Personality mode for the summary')
-        .setRequired(false)
+    .addStringOption(option => 
+      option.setName('mode')
+        .setDescription('Persona or style for the summary')
         .addChoices(
           { name: 'Standard (Professional)', value: 'standard' },
-          { name: 'Fun & Energetic', value: 'fun' },
-          { name: 'Sarcastic Roast', value: 'roast' },
-          { name: 'Epic Story', value: 'story' },
-          { name: 'High Urgency', value: 'urgent' },
-          { name: 'Manager (High-Level)', value: 'manager' },
-          { name: 'Empathic & Supportive', value: 'empathic' },
-          { name: 'For Me (Personalized)', value: 'for-me' },
-        )
-    )
+          { name: 'Marcus (Fun & Energetic)', value: 'fun' },
+          { name: 'RoastMaster (Sarcastic)', value: 'roast' },
+          { name: 'Storyteller (Dramatic)', value: 'story' },
+          { name: 'Urgent (Action-oriented)', value: 'urgent' },
+          { name: 'Executive Manager', value: 'manager' },
+          { name: 'Empathic Supporter', value: 'empathic' },
+          { name: 'For Me (Personalized)', value: 'for-me' }
+        ))
+    .addStringOption(option => 
+      option.setName('timeframe')
+        .setDescription('Timeframe to summarize (e.g. 1hr, 2hrs, 1d)'))
+    .addUserOption(option => 
+      option.setName('user')
+        .setDescription('Focus the summary specifically on this user'))
     .toJSON(),
 ];
 
