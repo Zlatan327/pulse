@@ -13,7 +13,7 @@ import {
   formatTaskChecklist,
   config,
 } from '../../core/index.js';
-import type { PlatformMessage } from '../../core/types.js';
+import type { PlatformMessage, CatchupMode } from '../../core/types.js';
 
 export async function handleCatchup(
   client: WAClient,
@@ -21,6 +21,16 @@ export async function handleCatchup(
   chat: Chat
 ): Promise<void> {
   const chatId = chat.id._serialized;
+
+  const args = msg.body.split(' ').map(s => s.trim()).filter(Boolean);
+  let mode: CatchupMode = 'standard';
+  const modes = ['standard', 'fun', 'roast', 'story', 'urgent'];
+  for (const arg of args) {
+    if (modes.includes(arg.toLowerCase())) {
+      mode = arg.toLowerCase() as CatchupMode;
+      break;
+    }
+  }
 
   await chat.sendMessage('⏳ Catching up on recent messages...');
 
@@ -78,7 +88,7 @@ export async function handleCatchup(
     }
 
     // Generate summary
-    const summary = await summarizeMessages(mergedMessages);
+    const summary = await summarizeMessages(mergedMessages, mode);
 
     // Generate audio
     const audio = await generateSpeech(summary.text);

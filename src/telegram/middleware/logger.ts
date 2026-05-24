@@ -9,6 +9,7 @@ import {
   cleanupAudioFile,
   cleanupTempFile,
   getLanguageName,
+  getRecentMessages,
   config,
 } from '../../core/index.js';
 import type { PlatformMessage } from '../../core/types.js';
@@ -67,12 +68,47 @@ export async function messageLogger(ctx: Context, next: NextFunction): Promise<v
 
       const transcription = await transcribeAudio(voicePath);
 
+      // Log the user's voice message immediately
       logMessage({
         ...baseMsg,
         text: transcription.text,
         messageType: 'voice',
         filePath: voicePath,
       });
+
+      // CHECK FOR DIRECT REPLY TO PULSE
+      if (msg.reply_to_message && msg.reply_to_message.from?.id === ctx.me.id) {
+        await ctx.replyWithChatAction('record_voice');
+        const history = getRecentMessages(String(ctx.chat.id), 'telegram', 15);
+        const { handleVoiceQuery } = await import('../../core/index.js');
+        const reply = await handleVoiceQuery(transcription.text, history);
+        
+        let sentMsg;
+        if (reply.audio) {
+          const oggPathReply = await convertToOggOpus(reply.audio.filePath);
+          sentMsg = await ctx.replyWithVoice(new InputFile(oggPathReply), { caption: reply.text });
+          cleanupAudioFile(reply.audio.filePath);
+          cleanupTempFile(oggPathReply);
+        } else {
+          sentMsg = await ctx.reply(reply.text);
+        }
+        
+        // Log the bot's reply so it exists in history
+        logMessage({
+          id: String(sentMsg.message_id),
+          platform: 'telegram',
+          chatId: String(ctx.chat.id),
+          userId: String(ctx.me.id),
+          username: ctx.me.username || 'Pulse',
+          text: reply.text,
+          messageType: reply.audio ? 'voice' : 'text',
+          filePath: null,
+          timestamp: new Date(sentMsg.date * 1000),
+        });
+        
+        cleanupTempFile(voicePath);
+        return await next();
+      }
 
       // Auto-translate non-English voice notes
       if (shouldTranslate(transcription.language)) {

@@ -13,11 +13,24 @@ import {
   formatTaskChecklist,
   config,
 } from '../../core/index.js';
+import type { CatchupMode } from '../../core/types.js';
 
 export async function handleCatchup(ctx: Context): Promise<void> {
   if (!ctx.chat) return;
 
   const chatId = String(ctx.chat.id);
+
+  const match = (ctx.match as string) || '';
+  const args = match.split(' ').map(s => s.trim()).filter(Boolean);
+  
+  let mode: CatchupMode = 'standard';
+  const modes = ['standard', 'fun', 'roast', 'story', 'urgent'];
+  for (const arg of args) {
+    if (modes.includes(arg.toLowerCase())) {
+      mode = arg.toLowerCase() as CatchupMode;
+      break;
+    }
+  }
 
   // Check if we have enough messages
   const totalMessages = getMessageCount(chatId, 'telegram');
@@ -52,7 +65,7 @@ export async function handleCatchup(ctx: Context): Promise<void> {
     }
 
     // Generate summary
-    const summary = await summarizeMessages(messages);
+    const summary = await summarizeMessages(messages, mode);
 
     // Generate audio
     const audio = await generateSpeech(summary.text);

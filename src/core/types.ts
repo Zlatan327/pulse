@@ -1,6 +1,9 @@
 /** Supported chat platforms */
 export type Platform = 'discord' | 'telegram' | 'whatsapp';
 
+/** Catchup persona modes */
+export type CatchupMode = 'standard' | 'fun' | 'roast' | 'story' | 'urgent';
+
 /** Normalized message from any platform */
 export interface PlatformMessage {
   id: string;

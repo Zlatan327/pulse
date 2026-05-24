@@ -10,6 +10,7 @@ import {
   cleanupAudioFile,
   cleanupTempFile,
   getLanguageName,
+  getRecentMessages,
   config,
 } from '../../core/index.js';
 import type { PlatformMessage } from '../../core/types.js';
@@ -67,12 +68,51 @@ async function processMessage(client: WAClient, msg: WAMessage): Promise<void> {
 
       const transcription = await transcribeAudio(voicePath);
 
+      // Log user voice message immediately
       logMessage({
         ...baseMsg,
         text: transcription.text,
         messageType: 'voice',
         filePath: voicePath,
       });
+
+      // CHECK FOR DIRECT REPLY TO PULSE
+      if (msg.hasQuotedMsg) {
+        const quotedMsg = await msg.getQuotedMessage();
+        if (quotedMsg.fromMe) {
+          const history = getRecentMessages(chat.id._serialized, 'whatsapp', 15);
+          const { handleVoiceQuery } = await import('../../core/index.js');
+          const reply = await handleVoiceQuery(transcription.text, history);
+          
+          let sentMsg;
+          if (reply.audio) {
+            const oggPathReply = await convertToOggOpus(reply.audio.filePath);
+            const voiceMediaReply = MessageMedia.fromFilePath(oggPathReply);
+            await msg.reply(`🔊 ${reply.text}`);
+            sentMsg = await chat.sendMessage(voiceMediaReply, { sendAudioAsVoice: true });
+            cleanupAudioFile(reply.audio.filePath);
+            cleanupTempFile(oggPathReply);
+          } else {
+            sentMsg = await msg.reply(reply.text);
+          }
+          
+          // Log the bot's reply so it exists in history
+          logMessage({
+            id: sentMsg.id.id,
+            platform: 'whatsapp',
+            chatId: chat.id._serialized,
+            userId: client.info.wid._serialized,
+            username: client.info.pushname || 'Pulse',
+            text: reply.text,
+            messageType: reply.audio ? 'voice' : 'text',
+            filePath: null,
+            timestamp: new Date(sentMsg.timestamp * 1000),
+          });
+          
+          cleanupTempFile(voicePath);
+          return;
+        }
+      }
 
       // Auto-translate non-English voice notes
       if (shouldTranslate(transcription.language)) {

@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { config } from './config.js';
-import type { PlatformMessage, ChatSummary, TaskItem } from './types.js';
+import type { PlatformMessage, ChatSummary, TaskItem, CatchupMode } from './types.js';
 
 const genAI = new GoogleGenerativeAI(config.gemini.apiKey);
 
@@ -26,8 +26,20 @@ function buildTranscript(messages: PlatformMessage[]): string {
     .join('\n');
 }
 
+/** Get persona instructions based on mode */
+function getModePrompt(mode: CatchupMode): string {
+  switch (mode) {
+    case 'fun': return 'Make the summary highly energetic, humorous, and entertaining. Use playful language and mild exaggeration.';
+    case 'roast': return 'Adopt a sarcastic, brutally honest, "roast" persona. Playfully mock the team for their lack of progress or chaotic communication, but keep it lighthearted.';
+    case 'story': return 'Narrate the summary like an epic bedtime story or a dramatic movie trailer. Use vivid imagery and dramatic pauses.';
+    case 'urgent': return 'Adopt a highly professional, rapid-fire, urgent tone. Focus strictly on what needs to be done right now.';
+    case 'standard':
+    default: return 'Write in a natural, conversational tone as if you are briefing someone verbally.';
+  }
+}
+
 /** Summarize a batch of messages into a spoken summary */
-export async function summarizeMessages(messages: PlatformMessage[]): Promise<ChatSummary> {
+export async function summarizeMessages(messages: PlatformMessage[], mode: CatchupMode = 'standard'): Promise<ChatSummary> {
   if (messages.length === 0) {
     return {
       text: 'There are no new messages to catch up on.',
@@ -40,10 +52,12 @@ export async function summarizeMessages(messages: PlatformMessage[]): Promise<Ch
   const transcript = buildTranscript(messages);
   const targetWords = config.summaryTargetDuration * 2.5; // ~150 words per minute speaking rate = 2.5 words/sec
 
+  const modeInstruction = getModePrompt(mode);
+
   const systemPrompt = `You are Pulse, an AI assistant that creates concise audio summaries of group chat conversations.
 
 Your task is to create a spoken summary that will be converted to audio. Follow these rules:
-- Write in a natural, conversational tone as if you're briefing someone verbally
+- ${modeInstruction}
 - Keep it under ${Math.round(targetWords)} words (approximately ${config.summaryTargetDuration} seconds when spoken)
 - Start with a brief time context (e.g., "In the last few hours..." or "Since you've been away...")
 - Highlight KEY decisions, important updates, and action items

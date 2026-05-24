@@ -9,6 +9,7 @@ import {
   cleanupAudioFile,
   cleanupTempFile,
   getLanguageName,
+  getRecentMessages,
   config,
 } from '../../core/index.js';
 import type { PlatformMessage } from '../../core/types.js';
@@ -55,13 +56,62 @@ export function handleMessageCreate(client: Client): void {
           // Transcribe
           const transcription = await transcribeAudio(voicePath);
 
-          // Log the voice message with transcription
+          // Log the user's voice message immediately
           logMessage({
             ...baseMsg,
             text: transcription.text,
             messageType: 'voice',
             filePath: voicePath,
           });
+
+          // CHECK FOR DIRECT REPLY TO PULSE
+          if (message.reference && message.reference.messageId) {
+            try {
+              const repliedMessage = await message.channel.messages.fetch(message.reference.messageId);
+              if (repliedMessage.author.id === client.user?.id) {
+                if ('sendTyping' in message.channel && typeof message.channel.sendTyping === 'function') {
+                  await message.channel.sendTyping();
+                }
+                
+                // Fetch recent history for context
+                const history = getRecentMessages(message.channelId, 'discord', 15);
+                
+                // Route to Voice Agent
+                const { handleVoiceQuery } = await import('../../core/index.js');
+                const reply = await handleVoiceQuery(transcription.text, history);
+                
+                let sentMsg;
+                if (reply.audio) {
+                  const responseAudio = new AttachmentBuilder(reply.audio.buffer, { name: 'reply.mp3' });
+                  sentMsg = await message.reply({
+                    content: `🔊 ${reply.text}`,
+                    files: [responseAudio]
+                  });
+                  cleanupAudioFile(reply.audio.filePath);
+                } else {
+                  sentMsg = await message.reply(reply.text);
+                }
+                
+                // Log the bot's reply so it exists in history
+                logMessage({
+                  id: sentMsg.id,
+                  platform: 'discord',
+                  chatId: message.channelId,
+                  userId: client.user.id,
+                  username: client.user.displayName || client.user.username,
+                  text: reply.text,
+                  messageType: reply.audio ? 'voice' : 'text',
+                  filePath: null,
+                  timestamp: sentMsg.createdAt,
+                });
+                
+                cleanupTempFile(voicePath);
+                continue; // Skip auto-translation block
+              }
+            } catch (e) {
+              console.error('Failed to process direct reply', e);
+            }
+          }
 
           // Auto-translate if non-English
           if (shouldTranslate(transcription.language)) {

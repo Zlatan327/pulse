@@ -13,6 +13,19 @@ const commands = [
         .setMinValue(5)
         .setMaxValue(500)
     )
+    .addStringOption(option =>
+      option
+        .setName('mode')
+        .setDescription('Personality mode for the summary')
+        .setRequired(false)
+        .addChoices(
+          { name: 'Standard', value: 'standard' },
+          { name: 'Fun', value: 'fun' },
+          { name: 'Roast', value: 'roast' },
+          { name: 'Story', value: 'story' },
+          { name: 'Urgent', value: 'urgent' }
+        )
+    )
     .toJSON(),
 ];
 

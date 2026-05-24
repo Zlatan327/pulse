@@ -11,13 +11,14 @@ import {
   formatTaskChecklist,
   config,
 } from '../../core/index.js';
-import type { PlatformMessage } from '../../core/types.js';
+import type { PlatformMessage, CatchupMode } from '../../core/types.js';
 
 export async function handleCatchup(interaction: ChatInputCommandInteraction): Promise<void> {
   await interaction.deferReply();
 
   const chatId = interaction.channelId;
   const requestedLimit = interaction.options.getInteger('messages') || config.summaryMaxMessages;
+  const mode = (interaction.options.getString('mode') as CatchupMode) || 'standard';
 
   // Check if we have enough messages
   const totalMessages = getMessageCount(chatId, 'discord');
@@ -60,7 +61,7 @@ export async function handleCatchup(interaction: ChatInputCommandInteraction): P
         return;
       }
 
-      await generateAndSendSummary(interaction, platformMessages, chatId);
+      await generateAndSendSummary(interaction, platformMessages, chatId, mode);
     } catch (error) {
       console.error('❌ Failed to fetch Discord messages:', error);
       await interaction.editReply('❌ Failed to fetch messages. Make sure I have the "Read Message History" permission.');
@@ -82,19 +83,20 @@ export async function handleCatchup(interaction: ChatInputCommandInteraction): P
     return;
   }
 
-  await generateAndSendSummary(interaction, messages, chatId);
+  await generateAndSendSummary(interaction, messages, chatId, mode);
 }
 
 async function generateAndSendSummary(
   interaction: ChatInputCommandInteraction,
   messages: PlatformMessage[],
-  chatId: string
+  chatId: string,
+  mode: CatchupMode
 ): Promise<void> {
   // Update status
   await interaction.editReply(`⏳ Summarizing ${messages.length} messages...`);
 
   // Generate summary
-  const summary = await summarizeMessages(messages);
+  const summary = await summarizeMessages(messages, mode);
 
   // Generate audio
   const audio = await generateSpeech(summary.text);
