@@ -44,6 +44,22 @@ export function initDatabase(): void {
     CREATE INDEX IF NOT EXISTS idx_catchup_chat 
       ON catchup_log(chat_id, platform, timestamp DESC);
 
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE,
+      name TEXT,
+      image TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS accounts (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      provider TEXT NOT NULL,
+      providerAccountId TEXT NOT NULL,
+      access_token TEXT,
+      UNIQUE(provider, providerAccountId)
+    );
+
     CREATE TABLE IF NOT EXISTS user_settings (
       user_id TEXT PRIMARY KEY,
       voice_style TEXT DEFAULT 'standard',

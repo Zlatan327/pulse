@@ -9,7 +9,7 @@ import {
   cleanupAudioFile,
   cleanupTempFile,
 } from '../core/index.js';
-import type { PlatformMessage } from '../core/types.js';
+import type { PlatformMessage, CatchupMode } from '../core/types.js';
 import fs from 'fs';
 import path from 'path';
 

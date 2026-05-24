@@ -2,7 +2,7 @@ import { Bot, Context } from 'grammy';
 import { FileFlavor, hydrateFiles } from '@grammyjs/files';
 import { config, validatePlatform, initDatabase } from '../core/index.js';
 import { messageLogger } from './middleware/logger.js';
-import { catchupCommand } from './commands/catchup.js';
+import { handleCatchup } from './commands/catchup.js';
 import { handleAudioReply } from './commands/audioReply.js';
 
 export type PulseContext = FileFlavor<Context>;
@@ -22,7 +22,7 @@ export async function startTelegram(): Promise<Bot<PulseContext>> {
   bot.use(messageLogger);
 
   // Register commands
-  bot.command('catchup', catchupCommand);
+  bot.command('catchup', handleCatchup);
   bot.on('message:audio', handleAudioReply);
   bot.on('message:voice', handleAudioReply);
 
