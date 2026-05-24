@@ -1,20 +1,30 @@
-import { Bot } from 'grammy';
+import { Bot, Context } from 'grammy';
+import { FileFlavor, hydrateFiles } from '@grammyjs/files';
 import { config, validatePlatform, initDatabase } from '../core/index.js';
 import { messageLogger } from './middleware/logger.js';
-import { handleCatchup } from './commands/catchup.js';
+import { catchupCommand } from './commands/catchup.js';
+import { handleAudioReply } from './commands/audioReply.js';
 
-/** Start the Telegram bot adapter */
-export async function startTelegram(): Promise<Bot> {
+export type PulseContext = FileFlavor<Context>;
+
+// Export bot so other adapters (like X) can send DMs
+export let bot: Bot<PulseContext>;
+
+/** Start the Telegram adapter */
+export async function startTelegram(): Promise<Bot<PulseContext>> {
   validatePlatform('telegram');
   initDatabase();
 
-  const bot = new Bot(config.telegram.botToken);
+  bot = new Bot<PulseContext>(config.telegram.botToken);
+  bot.api.config.use(hydrateFiles(bot.token));
 
   // Install middleware (must be before command handlers)
   bot.use(messageLogger);
 
   // Register commands
-  bot.command('catchup', handleCatchup);
+  bot.command('catchup', catchupCommand);
+  bot.on('message:audio', handleAudioReply);
+  bot.on('message:voice', handleAudioReply);
 
   // Set bot commands menu (fire-and-forget — don't block startup)
   bot.api.setMyCommands([

@@ -60,16 +60,6 @@ Type `/catchup` in any group chat. Pulse drops a **30-second audio clip** summar
 
 ---
 
-## 🎬 Demonstration Flow
-
-To demonstrate Pulse's full capabilities, try this flow:
-1. **Group Chaos:** Have team members send various messages, documents, and foreign language voice notes in the chat.
-2. **The Catchup:** Type `/catchup fun` to trigger an energetic audio summary + task checklist.
-3. **The Follow-Up:** Reply directly to Pulse's audio message with a voice note saying *"Hey Pulse, who is handling the API integration?"*
-4. **Agentic Response:** Pulse will fetch the chat context, answer your question conversationally, and reply with a new generated voice note!
-
----
-
 ## 📦 Quick Start
 
 ### Prerequisites
@@ -84,24 +74,38 @@ To demonstrate Pulse's full capabilities, try this flow:
 - **WhatsApp**: Tag commands (`@PulseBot summarize`)
 - **X (Twitter)**: Mention threads (`@PulseBot summary`)
 
-## 🛠️ Quick Setup
+## 🚀 Setup & Installation
 
-1. Clone the repo and install dependencies:
+### 1. The Core Engine (Bot)
+1. Clone the repository and install dependencies:
+   ```bash
+   git clone https://github.com/yourusername/pulse.git
+   cd pulse
+   npm install
+   ```
+2. Copy the `.env.example` to `.env` and add your AI keys (OpenAI & ElevenLabs).
+3. Add your Bot tokens for Discord, Telegram, and X.
+
+### 2. The Web Dashboard (Identity Hub)
+Pulse includes a sleek Next.js dashboard where users can link their X and Telegram accounts to route summaries cross-platform.
+1. Navigate to the web folder:
+   ```bash
+   cd web
+   npm install
+   ```
+2. Set up your OAuth credentials in `.env` (Google and Twitter).
+3. Start the dashboard:
+   ```bash
+   npm run dev
+   ```
+   *Visit `http://localhost:3000` to log in and link your accounts!*
+
+## 🎮 Running Pulse
+
+Start the core engine for your configured platforms:
 ```bash
-git clone https://github.com/Zlatan327/pulse.git
-cd pulse
-npm install
-```
-
-2. Copy the environment template:
-```bash
-cp .env.example .env
-```
-
-3. Add your API keys and configure your platforms:
-```env
-# Required AI APIs
-GEMINI_API_KEY=your_gemini_key
+npm start
+```GEMINI_API_KEY=your_gemini_key
 ELEVENLABS_API_KEY=your_elevenlabs_key
 ELEVENLABS_VOICE_ID=your_voice_id
 

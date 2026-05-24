@@ -140,46 +140,73 @@ export async function startX(): Promise<Scraper> {
           console.log('🔊 Generating audio...');
           const audio = await generateSpeech(summary.text);
 
-          // X requires specific formats for media. MP4 is best for audio-only video uploads, but MP3 might work if disguised or if we just send the text. 
-          // However, agent-twitter-client might have strict rules. Let's try sending the raw audio buffer.
-          // Note: agent-twitter-client's sendTweet takes media as { data: Buffer, mediaType: string }
+          // 6. Cross-Platform Telegram DM Routing
+          console.log(`✉️ Checking if @${tweet.username} is linked to Telegram...`);
           
-          const mediaData = [{
-            data: fs.readFileSync(audio.filePath),
-            mediaType: 'audio/mpeg' // MP3
-          }];
-
-          // Option C: Public Reply + DM
-          
-          // Reply publicly
-          console.log(`💬 Replying publicly to tweet ${tweet.id}...`);
+          let telegramLinked = false;
           try {
-             await scraper.sendTweet(
-               `@${tweet.username} I've summarized this thread for you! Check your DMs for the audio catchup 🎧`, 
-               tweet.id
-             );
-          } catch(e: any) {
-             console.error('⚠️ Could not send public reply:', e.message);
+            // Need a separate DB connection or import the existing one
+            // We'll require better-sqlite3 directly since we need custom queries
+            const Database = require('better-sqlite3');
+            const path = require('path');
+            const dbPath = path.resolve(config.dataDir, 'pulse.db');
+            const db = new Database(dbPath);
+
+            // Find the Telegram ID for this Twitter user ID
+            const stmt = db.prepare(`
+              SELECT t.providerAccountId AS telegramId 
+              FROM accounts t 
+              JOIN accounts x ON t.userId = x.userId 
+              WHERE x.provider = 'twitter' 
+                AND x.providerAccountId = ? 
+                AND t.provider = 'telegram'
+            `);
+            
+            const linkedAccount = stmt.get(String(tweet.userId)) as { telegramId: string } | undefined;
+
+            if (linkedAccount?.telegramId) {
+              console.log(`✅ Linked Telegram account found (ID: ${linkedAccount.telegramId})`);
+              
+              // Import the telegram bot dynamically to avoid circular dependencies
+              const { bot } = require('../telegram/index.js');
+              const { InputFile } = require('grammy');
+              
+              if (bot) {
+                // Send the audio via Telegram DM!
+                await bot.api.sendAudio(
+                  linkedAccount.telegramId, 
+                  new InputFile(audio.filePath),
+                  { caption: `🔊 Here is your Pulse audio summary from X (@${tweet.username}):\n\n${summary.text}` }
+                );
+                telegramLinked = true;
+                console.log('🚀 Telegram DM sent successfully!');
+              } else {
+                 console.log('⚠️ Telegram bot is not running. Start it by adding telegram to ENABLED_PLATFORMS.');
+              }
+            } else {
+              console.log('⚠️ No linked Telegram account found.');
+            }
+            db.close();
+          } catch (e: any) {
+            console.error('⚠️ Could not check linked accounts:', e.message);
           }
 
-          // Send DM
-          console.log(`✉️ Sending DM to @${tweet.username} (ID: ${tweet.userId})...`);
+          // Option C: Public Reply + Telegram DM
+          console.log(`💬 Replying publicly to tweet ${tweet.id}...`);
           try {
-            // Some versions of the library don't expose sendDirectMessage publicly or it requires internal calls
-            // If it exists, we use it.
-            if (typeof (scraper as any).sendDirectMessage === 'function') {
-               // We might need to send the text and media separately or together depending on the client.
-               // For now, let's try sending just text if media DM fails, or we can just send the text summary.
-               // We'll just send the text summary in the DM for safety since media DMs via unofficial clients are very unstable.
-               const dmText = `🔊 Here is your Pulse audio summary (Text Fallback):\n\n${summary.text}`;
-               await (scraper as any).sendDirectMessage(tweet.userId, dmText);
-               console.log('✅ DM sent!');
-            } else {
-               console.log('⚠️ DM functionality not available in this client version. Falling back to public reply with summary text.');
-               await scraper.sendTweet(`@${tweet.username} Here is the summary:\n\n${summary.text.substring(0, 250)}...`, tweet.id);
-            }
+             if (telegramLinked) {
+                await scraper.sendTweet(
+                  `@${tweet.username} I've summarized this thread for you! Check your Telegram DMs for the audio catchup 🎧`, 
+                  tweet.id
+                );
+             } else {
+                await scraper.sendTweet(
+                  `@${tweet.username} I've generated your audio summary! To receive it via DM, please link your Telegram account on the Pulse Dashboard (link in bio).`, 
+                  tweet.id
+                );
+             }
           } catch(e: any) {
-             console.error('⚠️ Could not send DM:', e.message);
+             console.error('⚠️ Could not send public reply:', e.message);
           }
 
           cleanupAudioFile(audio.filePath);
