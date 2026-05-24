@@ -80,10 +80,19 @@ Your task is to create a spoken summary that will be converted to audio. Follow 
   const summaryText = response.response.text() || 'Unable to generate summary.';
 
   // Extract tasks in a second call
-  const tasks = await extractTasks(transcript);
+  const tasksPromise = extractTasks(transcript);
+  
+  // Generate a short catchy title
+  const titlePromise = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
+    .generateContent(`Provide a 3 to 5 word catchy title for this group chat transcript. Do not use quotes.\n\n${transcript}`)
+    .then(res => res.response.text()?.trim().replace(/['"]+/g, '') || "Chat Summary")
+    .catch(() => "Chat Summary");
+
+  const [tasks, title] = await Promise.all([tasksPromise, titlePromise]);
 
   return {
     text: summaryText,
+    title,
     tasks,
     messageCount: messages.length,
     timespan: {

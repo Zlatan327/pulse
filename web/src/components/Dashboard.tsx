@@ -4,6 +4,7 @@ import { Monitor, Phone, Settings2, Twitter, LogOut, CheckCircle2, Play, Volume2
 import { signIn, signOut } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { updateUserSettings } from "../app/actions";
 
 interface DashboardProps {
   session: any;
@@ -12,6 +13,8 @@ interface DashboardProps {
     telegram: boolean;
   };
   telegramBotUsername: string;
+  userSettings?: { voice_style: string, language: string };
+  audioSummaries?: any[];
 }
 
 const staggerContainer = {
@@ -29,7 +32,7 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
 };
 
-export default function Dashboard({ session, linkedAccounts, telegramBotUsername }: DashboardProps) {
+export default function Dashboard({ session, linkedAccounts, telegramBotUsername, userSettings, audioSummaries = [] }: DashboardProps) {
   const telegramRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -203,28 +206,30 @@ export default function Dashboard({ session, linkedAccounts, telegramBotUsername
               <h2 className="text-lg font-semibold text-zinc-100">AI Voice Engine</h2>
             </div>
             
-            <div className="flex flex-col gap-2">
-              <label className="text-xs text-zinc-400 uppercase tracking-wider font-semibold">Summary Voice Style</label>
-              <select className="bg-zinc-950 border border-zinc-800 text-zinc-200 text-sm rounded-xl p-3 focus:outline-none focus:border-zinc-600 appearance-none">
-                <option>Standard (Professional)</option>
-                <option>Marcus (Fun & Energetic)</option>
-                <option>RoastMaster (Sarcastic)</option>
-                <option>Storyteller</option>
-              </select>
-            </div>
-
-            <div className="flex flex-col gap-2 mt-2">
-              <label className="text-xs text-zinc-400 uppercase tracking-wider font-semibold">Translation Target</label>
-              <div className="relative">
-                <Globe className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                <select className="bg-zinc-950 border border-zinc-800 text-zinc-200 text-sm rounded-xl p-3 pl-9 w-full focus:outline-none focus:border-zinc-600 appearance-none">
-                  <option>English</option>
-                  <option>Spanish</option>
-                  <option>French</option>
-                  <option>German</option>
+            <form action={updateUserSettings} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <label className="text-xs text-zinc-400 uppercase tracking-wider font-semibold">Summary Voice Style</label>
+                <select name="voiceStyle" defaultValue={userSettings?.voice_style || "Standard (Professional)"} onChange={(e) => e.target.form?.requestSubmit()} className="bg-zinc-950 border border-zinc-800 text-zinc-200 text-sm rounded-xl p-3 focus:outline-none focus:border-zinc-600 appearance-none">
+                  <option>Standard (Professional)</option>
+                  <option>Marcus (Fun & Energetic)</option>
+                  <option>RoastMaster (Sarcastic)</option>
+                  <option>Storyteller</option>
                 </select>
               </div>
-            </div>
+
+              <div className="flex flex-col gap-2 mt-2">
+                <label className="text-xs text-zinc-400 uppercase tracking-wider font-semibold">Translation Target</label>
+                <div className="relative">
+                  <Globe className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <select name="language" defaultValue={userSettings?.language || "English"} onChange={(e) => e.target.form?.requestSubmit()} className="bg-zinc-950 border border-zinc-800 text-zinc-200 text-sm rounded-xl p-3 pl-9 w-full focus:outline-none focus:border-zinc-600 appearance-none">
+                    <option>English</option>
+                    <option>Spanish</option>
+                    <option>French</option>
+                    <option>German</option>
+                  </select>
+                </div>
+              </div>
+            </form>
           </motion.div>
 
         </div>
@@ -238,31 +243,31 @@ export default function Dashboard({ session, linkedAccounts, telegramBotUsername
             </div>
 
             <div className="flex flex-col gap-3">
-              {[
-                { title: "Team Engineering Sync", platform: "Discord", duration: "0:42", time: "2 hours ago" },
-                { title: "Marketing Strategy Thread", platform: "X", duration: "1:15", time: "5 hours ago" },
-                { title: "Weekend Plans", platform: "Telegram", duration: "0:28", time: "Yesterday" }
-              ].map((item, i) => (
-                <motion.div 
-                  key={i}
-                  whileHover={{ scale: 1.01 }}
-                  className="bg-zinc-950 border border-zinc-800 p-4 rounded-2xl flex items-center justify-between group cursor-pointer transition-colors hover:border-zinc-700"
-                >
-                  <div className="flex items-center gap-4">
-                    <button className="bg-zinc-800 group-hover:bg-red-600/20 group-hover:text-red-500 p-3 rounded-full transition-colors text-zinc-400">
-                      <Play className="w-5 h-5 fill-current" />
-                    </button>
-                    <div>
-                      <h4 className="font-medium text-zinc-200">{item.title}</h4>
-                      <div className="flex items-center gap-2 text-xs text-zinc-500 mt-1">
-                        <span className="bg-zinc-800 px-2 py-0.5 rounded-md">{item.platform}</span>
-                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {item.time}</span>
+              {audioSummaries.length === 0 ? (
+                <div className="text-zinc-500 text-sm p-4 text-center">No summaries generated yet.</div>
+              ) : (
+                audioSummaries.map((item, i) => (
+                  <motion.div 
+                    key={i}
+                    whileHover={{ scale: 1.01 }}
+                    className="bg-zinc-950 border border-zinc-800 p-4 rounded-2xl flex items-center justify-between group cursor-pointer transition-colors hover:border-zinc-700"
+                  >
+                    <div className="flex items-center gap-4">
+                      <button className="bg-zinc-800 group-hover:bg-red-600/20 group-hover:text-red-500 p-3 rounded-full transition-colors text-zinc-400">
+                        <Play className="w-5 h-5 fill-current" />
+                      </button>
+                      <div>
+                        <h4 className="font-medium text-zinc-200">{item.title}</h4>
+                        <div className="flex items-center gap-2 text-xs text-zinc-500 mt-1">
+                          <span className="bg-zinc-800 px-2 py-0.5 rounded-md capitalize">{item.platform}</span>
+                          <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(item.timestamp).toLocaleTimeString()}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <span className="text-zinc-500 text-sm font-mono">{item.duration}</span>
-                </motion.div>
-              ))}
+                    <span className="text-zinc-500 text-sm font-mono">{Math.floor(item.duration_seconds / 60)}:{String(item.duration_seconds % 60).padStart(2, '0')}</span>
+                  </motion.div>
+                ))
+              )}
             </div>
 
             <div className="mt-auto pt-8 flex items-center justify-center">

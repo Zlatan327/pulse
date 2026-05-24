@@ -21,6 +21,23 @@ db.exec(`
     name TEXT,
     image TEXT
   );
+  
+  CREATE TABLE IF NOT EXISTS user_settings (
+    user_id TEXT PRIMARY KEY,
+    voice_style TEXT DEFAULT 'standard',
+    language TEXT DEFAULT 'en',
+    FOREIGN KEY(user_id) REFERENCES users(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS audio_summaries (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    platform TEXT NOT NULL,
+    title TEXT NOT NULL,
+    duration_seconds INTEGER NOT NULL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+  );
 `);
 
 export const { handlers, signIn, signOut, auth } = NextAuth({

@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import { config } from './config.js';
 import type { PlatformMessage, Platform, CatchupEntry } from './types.js';
 import fs from 'fs';
+import crypto from 'crypto';
 
 // Ensure data directory exists
 fs.mkdirSync(config.dataDir, { recursive: true });
@@ -42,6 +43,21 @@ export function initDatabase(): void {
 
     CREATE INDEX IF NOT EXISTS idx_catchup_chat 
       ON catchup_log(chat_id, platform, timestamp DESC);
+
+    CREATE TABLE IF NOT EXISTS user_settings (
+      user_id TEXT PRIMARY KEY,
+      voice_style TEXT DEFAULT 'standard',
+      language TEXT DEFAULT 'en'
+    );
+
+    CREATE TABLE IF NOT EXISTS audio_summaries (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      platform TEXT NOT NULL,
+      title TEXT NOT NULL,
+      duration_seconds INTEGER NOT NULL,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   console.log('✅ Database initialized');
@@ -151,4 +167,30 @@ export function getMessageCount(chatId: string, platform: Platform): number {
 export function closeDatabase(): void {
   db.close();
   console.log('📦 Database connection closed');
+}
+
+/** Record a generated audio summary */
+export function logSummary(userId: string, platform: string, title: string, durationSeconds: number): void {
+  db.prepare(`
+    INSERT INTO audio_summaries (id, user_id, platform, title, duration_seconds)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(crypto.randomUUID(), userId, platform, title, durationSeconds);
+}
+
+/** Get user settings based on their platform ID */
+export function getUserSettingsByPlatformId(platform: string, providerAccountId: string): { userId: string, voiceStyle: string, language: string } | null {
+  const row = db.prepare(`
+    SELECT u.id as userId, s.voice_style as voiceStyle, s.language as language
+    FROM accounts a
+    JOIN users u ON a.userId = u.id
+    LEFT JOIN user_settings s ON u.id = s.user_id
+    WHERE a.provider = ? AND a.providerAccountId = ?
+  `).get(platform, providerAccountId) as any;
+
+  if (!row) return null;
+  return {
+    userId: row.userId,
+    voiceStyle: row.voiceStyle || 'Standard (Professional)',
+    language: row.language || 'English'
+  };
 }

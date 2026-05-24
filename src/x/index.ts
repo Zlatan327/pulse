@@ -132,13 +132,59 @@ export async function startX(): Promise<Scraper> {
             timestamp: t.timeParsed || new Date(),
           }));
 
-          // 4. Summarize
+          // 4. Summarize (fetch user settings first if possible)
           console.log(`🧠 Summarizing ${messages.length} tweets...`);
-          const summary = await summarizeMessages(messages, 'standard', tweet.username);
+          
+          let mode: CatchupMode = 'standard';
+          let masterUserId: string | null = null;
+          
+          // Try to get user settings if they linked their X account
+          try {
+             const { default: Database } = await import('better-sqlite3');
+             const path = await import('path');
+             const dbPath = path.resolve(config.dataDir, 'pulse.db');
+             const db = new Database(dbPath);
+             
+             const row = db.prepare(`
+               SELECT u.id as userId, s.voice_style as voiceStyle 
+               FROM accounts a 
+               JOIN users u ON a.userId = u.id 
+               LEFT JOIN user_settings s ON u.id = s.user_id 
+               WHERE a.provider = 'twitter' AND a.providerAccountId = ?
+             `).get(String(tweet.userId)) as any;
+             
+             if (row) {
+               masterUserId = row.userId;
+               if (row.voiceStyle) {
+                 if (row.voiceStyle.includes('Marcus')) mode = 'fun';
+                 else if (row.voiceStyle.includes('RoastMaster')) mode = 'roast';
+                 else if (row.voiceStyle.includes('Storyteller')) mode = 'story';
+               }
+             }
+             db.close();
+          } catch(e) {}
+
+          const summary = await summarizeMessages(messages, mode, tweet.username);
 
           // 5. Generate Audio
           console.log('🔊 Generating audio...');
           const audio = await generateSpeech(summary.text);
+          
+          // Log summary to DB
+          if (masterUserId) {
+             try {
+                const { default: Database } = await import('better-sqlite3');
+                const path = await import('path');
+                const crypto = await import('crypto');
+                const dbPath = path.resolve(config.dataDir, 'pulse.db');
+                const db = new Database(dbPath);
+                db.prepare(`
+                  INSERT INTO audio_summaries (id, user_id, platform, title, duration_seconds)
+                  VALUES (?, ?, ?, ?, ?)
+                `).run(crypto.randomUUID(), masterUserId, 'x', summary.title || 'X Thread', Math.round(audio.durationMs / 1000));
+                db.close();
+             } catch(e) {}
+          }
 
           // 6. Cross-Platform Telegram DM Routing
           console.log(`✉️ Checking if @${tweet.username} is linked to Telegram...`);

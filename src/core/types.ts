@@ -21,6 +21,7 @@ export interface PlatformMessage {
 /** Result from the summarization engine */
 export interface ChatSummary {
   text: string;
+  title?: string;
   tasks: TaskItem[];
   messageCount: number;
   timespan: {

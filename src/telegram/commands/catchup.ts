@@ -8,10 +8,11 @@ import {
   summarizeMessages,
   generateSpeech,
   convertToOggOpus,
-  cleanupAudioFile,
   cleanupTempFile,
   formatTaskChecklist,
   config,
+  getUserSettingsByPlatformId,
+  logSummary
 } from '../../core/index.js';
 import type { CatchupMode } from '../../core/types.js';
 
@@ -25,7 +26,19 @@ export async function handleCatchup(ctx: Context): Promise<void> {
   
   const requester = ctx.from?.first_name || ctx.from?.username || 'user';
   
+  // 1. Check user settings from db
+  const userSettings = ctx.from?.id ? getUserSettingsByPlatformId('telegram', String(ctx.from.id)) : null;
+  
   let mode: CatchupMode = 'standard';
+  
+  if (userSettings?.voiceStyle) {
+    const style = userSettings.voiceStyle;
+    if (style.includes('Marcus')) mode = 'fun';
+    else if (style.includes('RoastMaster')) mode = 'roast';
+    else if (style.includes('Storyteller')) mode = 'story';
+  }
+
+  // Allow override via command args
   const modes = ['standard', 'fun', 'roast', 'story', 'urgent', 'manager', 'empathic', 'for-me'];
   for (const arg of args) {
     if (modes.includes(arg.toLowerCase())) {
@@ -93,8 +106,11 @@ export async function handleCatchup(ctx: Context): Promise<void> {
       await ctx.reply(taskList);
     }
 
-    // Record catchup
+    // Record catchup and log summary
     markCatchup(chatId, 'telegram', messages.length);
+    if (userSettings?.userId) {
+      logSummary(userSettings.userId, 'telegram', summary.title || 'Telegram Summary', Math.round(audio.durationMs / 1000));
+    }
 
     // Cleanup
     cleanupAudioFile(audio.filePath);
