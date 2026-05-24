@@ -2,7 +2,7 @@
 
 # ⚡ Pulse
 
-### AI-First Chat Companion — Audio Summaries for Discord, Telegram & WhatsApp
+### AI-First Chat Companion — Audio Summaries for Discord, Telegram & X
 
 An invisible assistant that listens, filters out the noise, and drops a **30-second audio summary** on command.
 
@@ -30,7 +30,7 @@ Type `/catchup` in any group chat. Pulse drops a **30-second audio clip** summar
 - Summarizes 50–500 messages into a concise, spoken audio clip
 - Powered by **Gemini 1.5 Flash** for intelligent summarization
 - Natural voice via **ElevenLabs** text-to-speech
-- Works across Discord, Telegram, and WhatsApp
+- Works across Discord, Telegram, and X
 - **Multiple Catchup Modes**: Tailor the tone of your summary:
   - `standard`: Professional and concise
   - `fun`: Highly energetic and humorous
@@ -40,6 +40,10 @@ Type `/catchup` in any group chat. Pulse drops a **30-second audio clip** summar
   - `manager`: High-level executive view of progress and blockers
   - `empathic`: Supportive tone highlighting team wins
   - `for-me`: Highly personalized summary focusing strictly on tasks and mentions involving you
+- **Advanced Querying**:
+  - **Timeframes**: Ask for `/catchup 1hr` or use the Discord `timeframe` slash command option.
+  - **User Targeting**: Ask for `/catchup @username` to focus the summary heavily on one person.
+  - **Contextual Thread Summaries**: Reply to any message with `/catchup` (or `@PulseBot summarize` in Discord) to summarize the conversation exactly from that point onward!
 
 ### 2. 🗣️ Voice Conversation Agent
 - Pulse acts as a fully conversational AI participant.
@@ -70,8 +74,7 @@ Type `/catchup` in any group chat. Pulse drops a **30-second audio clip** summar
   - [Google AI Studio](https://aistudio.google.com/app/apikey) (Gemini 1.5 Flash)
   - [ElevenLabs](https://elevenlabs.io) (Text-to-Speech)
 - **Discord**: Channel commands (`/catchup`)
-- **Telegram**: Group commands (`/catchup fun`)
-- **WhatsApp**: Tag commands (`@PulseBot summarize`)
+- **Telegram**: Group commands (`/catchup fun 1hr`)
 - **X (Twitter)**: Mention threads (`@PulseBot summary`)
 
 ## 🚀 Setup & Installation
@@ -110,7 +113,7 @@ ELEVENLABS_API_KEY=your_elevenlabs_key
 ELEVENLABS_VOICE_ID=your_voice_id
 
 # Choose which platforms to run
-ENABLED_PLATFORMS=discord,telegram,whatsapp,x
+ENABLED_PLATFORMS=discord,telegram,x
 
 # Discord
 DISCORD_TOKEN=your_token
@@ -118,9 +121,6 @@ DISCORD_CLIENT_ID=your_client_id
 
 # Telegram
 TELEGRAM_BOT_TOKEN=your_bot_token
-
-# WhatsApp (requires Chromium)
-WHATSAPP_ENABLED=true
 
 # X (Twitter) (requires a dedicated user account)
 X_USERNAME=pulsebot
@@ -216,23 +216,7 @@ npm start
 
 > **Note:** Telegram bots cannot read historical messages. The bot must be in the group to accumulate messages before `/catchup` produces meaningful results.
 
-### WhatsApp
 
-1. Prepare a **dedicated phone number** for the bot
-   - ⚠️ Using your personal number is **not recommended** — there is a risk of account restrictions
-2. Add to `.env`:
-   ```
-   WHATSAPP_ENABLED=true
-   ENABLED_PLATFORMS=whatsapp
-   ```
-3. Start the bot: `npm run start:whatsapp`
-4. Scan the QR code displayed in the terminal with WhatsApp:
-   - Open WhatsApp → **Settings** → **Linked Devices** → **Link a Device**
-5. Add the bot's number to your group chat
-
-> **Warning:** WhatsApp automation uses an unofficial library (`whatsapp-web.js`). While widely used, it carries inherent risks. Use a dedicated number and avoid spammy patterns.
-
----
 
 ## ⚙️ Environment Variables
 
@@ -245,8 +229,7 @@ npm start
 | `DISCORD_TOKEN` | 🔶 | — | Discord bot token (required for Discord) |
 | `DISCORD_CLIENT_ID` | 🔶 | — | Discord application ID (required for Discord) |
 | `TELEGRAM_BOT_TOKEN` | 🔶 | — | Telegram bot token (required for Telegram) |
-| `WHATSAPP_ENABLED` | 🔶 | `false` | Enable WhatsApp adapter |
-| `ENABLED_PLATFORMS` | ❌ | `discord` | Comma-separated: `discord,telegram,whatsapp` |
+| `ENABLED_PLATFORMS` | ❌ | `discord` | Comma-separated: `discord,telegram,x` |
 | `SUMMARY_MAX_MESSAGES` | ❌ | `100` | Max messages to include in a catchup |
 | `SUMMARY_TARGET_DURATION` | ❌ | `30` | Target audio summary length in seconds |
 | `DEFAULT_LANGUAGE` | ❌ | `en` | Default language for translations (ISO 639-1) |
@@ -260,9 +243,9 @@ npm start
 
 ```
 ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
-│   Discord   │  │  Telegram   │  │  WhatsApp   │
+│   Discord   │  │  Telegram   │  │      X      │
 │  Adapter    │  │  Adapter    │  │  Adapter    │
-│ (discord.js)│  │  (grammY)   │  │(wwebjs)     │
+│ (discord.js)│  │  (grammY)   │  │(twitter-api)│
 └──────┬──────┘  └──────┬──────┘  └──────┬──────┘
        │                │                │
        └────────────────┼────────────────┘
@@ -311,7 +294,7 @@ Gemini: Extract action items as JSON
 ElevenLabs: Convert summary text to speech (MP3)
        │
        ▼
-ffmpeg: Convert to platform format (OGG/Opus for TG & WA)
+ffmpeg: Convert to platform format (OGG/Opus for TG)
        │
        ▼
 Send audio + task checklist to chat
@@ -328,7 +311,6 @@ Send audio + task checklist to chat
 | `npm run build` | Compile TypeScript to JavaScript |
 | `npm run start:discord` | Start only the Discord adapter |
 | `npm run start:telegram` | Start only the Telegram adapter |
-| `npm run start:whatsapp` | Start only the WhatsApp adapter |
 | `npm run deploy:discord` | Register Discord slash commands |
 
 ---
@@ -357,7 +339,6 @@ docker-compose up -d --build
 ### Persistent data
 
 - **Database**: `./data/pulse.db` — all logged messages and catchup history
-- **WhatsApp session**: `./whatsapp-auth/` — avoids re-scanning QR code on restart
 
 ---
 
