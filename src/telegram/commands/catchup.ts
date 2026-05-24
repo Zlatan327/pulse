@@ -23,8 +23,10 @@ export async function handleCatchup(ctx: Context): Promise<void> {
   const match = (ctx.match as string) || '';
   const args = match.split(' ').map(s => s.trim()).filter(Boolean);
   
+  const requester = ctx.from?.first_name || ctx.from?.username || 'user';
+  
   let mode: CatchupMode = 'standard';
-  const modes = ['standard', 'fun', 'roast', 'story', 'urgent'];
+  const modes = ['standard', 'fun', 'roast', 'story', 'urgent', 'manager', 'empathic', 'for-me'];
   for (const arg of args) {
     if (modes.includes(arg.toLowerCase())) {
       mode = arg.toLowerCase() as CatchupMode;
@@ -65,7 +67,7 @@ export async function handleCatchup(ctx: Context): Promise<void> {
     }
 
     // Generate summary
-    const summary = await summarizeMessages(messages, mode);
+    const summary = await summarizeMessages(messages, mode, requester);
 
     // Generate audio
     const audio = await generateSpeech(summary.text);
@@ -79,6 +81,7 @@ export async function handleCatchup(ctx: Context): Promise<void> {
 
     let caption = `🔊 Pulse Catchup — ${summary.messageCount} messages`;
     caption += `\n📅 ${timeFrom} → ${timeTo}`;
+    caption += `\n\n🎙️ **Reply to this message with a voice note to ask me follow-up questions!**`;
 
     await ctx.replyWithVoice(new InputFile(oggPath), {
       caption,

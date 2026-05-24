@@ -19,6 +19,7 @@ export async function handleCatchup(interaction: ChatInputCommandInteraction): P
   const chatId = interaction.channelId;
   const requestedLimit = interaction.options.getInteger('messages') || config.summaryMaxMessages;
   const mode = (interaction.options.getString('mode') as CatchupMode) || 'standard';
+  const requester = interaction.user.displayName || interaction.user.username;
 
   // Check if we have enough messages
   const totalMessages = getMessageCount(chatId, 'discord');
@@ -61,7 +62,7 @@ export async function handleCatchup(interaction: ChatInputCommandInteraction): P
         return;
       }
 
-      await generateAndSendSummary(interaction, platformMessages, chatId, mode);
+      await generateAndSendSummary(interaction, platformMessages, chatId, mode, requester);
     } catch (error) {
       console.error('❌ Failed to fetch Discord messages:', error);
       await interaction.editReply('❌ Failed to fetch messages. Make sure I have the "Read Message History" permission.');
@@ -83,20 +84,21 @@ export async function handleCatchup(interaction: ChatInputCommandInteraction): P
     return;
   }
 
-  await generateAndSendSummary(interaction, messages, chatId, mode);
+  await generateAndSendSummary(interaction, messages, chatId, mode, requester);
 }
 
 async function generateAndSendSummary(
   interaction: ChatInputCommandInteraction,
   messages: PlatformMessage[],
   chatId: string,
-  mode: CatchupMode
+  mode: CatchupMode,
+  requester: string
 ): Promise<void> {
   // Update status
   await interaction.editReply(`⏳ Summarizing ${messages.length} messages...`);
 
   // Generate summary
-  const summary = await summarizeMessages(messages, mode);
+  const summary = await summarizeMessages(messages, mode, requester);
 
   // Generate audio
   const audio = await generateSpeech(summary.text);
@@ -106,6 +108,7 @@ async function generateAndSendSummary(
 
   const timeFrom = summary.timespan.from.toLocaleString();
   const timeTo = summary.timespan.to.toLocaleString();
+  const timeWindowHours = Math.round((summary.timespan.to.getTime() - summary.timespan.from.getTime()) / (1000 * 60 * 60));
 
   let replyContent = `🔊 **Pulse Catchup** — ${summary.messageCount} messages`;
   replyContent += `\n📅 ${timeFrom} → ${timeTo}`;
@@ -117,7 +120,7 @@ async function generateAndSendSummary(
   }
 
   await interaction.editReply({
-    content: replyContent,
+    content: `${replyContent}\n\n🎙️ **Reply to this message with a voice note to ask me follow-up questions!**`,
     files: [audioFile],
   });
 

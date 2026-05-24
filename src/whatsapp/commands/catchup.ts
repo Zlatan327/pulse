@@ -22,9 +22,12 @@ export async function handleCatchup(
 ): Promise<void> {
   const chatId = chat.id._serialized;
 
+  const requesterContact = await msg.getContact();
+  const requester = requesterContact.pushname || requesterContact.name || requesterContact.number || 'user';
+
   const args = msg.body.split(' ').map(s => s.trim()).filter(Boolean);
   let mode: CatchupMode = 'standard';
-  const modes = ['standard', 'fun', 'roast', 'story', 'urgent'];
+  const modes = ['standard', 'fun', 'roast', 'story', 'urgent', 'manager', 'empathic', 'for-me'];
   for (const arg of args) {
     if (modes.includes(arg.toLowerCase())) {
       mode = arg.toLowerCase() as CatchupMode;
@@ -88,7 +91,7 @@ export async function handleCatchup(
     }
 
     // Generate summary
-    const summary = await summarizeMessages(mergedMessages, mode);
+    const summary = await summarizeMessages(mergedMessages, mode, requester);
 
     // Generate audio
     const audio = await generateSpeech(summary.text);
@@ -102,7 +105,7 @@ export async function handleCatchup(
     const timeTo = summary.timespan.to.toLocaleString();
 
     await chat.sendMessage(
-      `🔊 *Pulse Catchup* — ${summary.messageCount} messages\n📅 ${timeFrom} → ${timeTo}`
+      `🔊 *Pulse Catchup* — ${summary.messageCount} messages\n📅 ${timeFrom} → ${timeTo}\n\n🎙️ *Reply to this message with a voice note to ask me follow-up questions!*`
     );
     await chat.sendMessage(voiceMedia, { sendAudioAsVoice: true });
 

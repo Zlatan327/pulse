@@ -31,18 +31,42 @@ Type `/catchup` in any group chat. Pulse drops a **30-second audio clip** summar
 - Powered by **Gemini 1.5 Flash** for intelligent summarization
 - Natural voice via **ElevenLabs** text-to-speech
 - Works across Discord, Telegram, and WhatsApp
+- **Multiple Catchup Modes**: Tailor the tone of your summary:
+  - `standard`: Professional and concise
+  - `fun`: Highly energetic and humorous
+  - `roast`: Sarcastic and playfully mocking
+  - `story`: Epic bedtime story narration
+  - `urgent`: Rapid-fire, highly professional urgency
+  - `manager`: High-level executive view of progress and blockers
+  - `empathic`: Supportive tone highlighting team wins
+  - `for-me`: Highly personalized summary focusing strictly on tasks and mentions involving you
 
-### 2. 📋 Auto-Generated Task Boards
+### 2. 🗣️ Voice Conversation Agent
+- Pulse acts as a fully conversational AI participant.
+- **Direct Voice Replies:** Reply to Pulse's audio summary with your own voice note to ask follow-up questions!
+- Pulse remembers the chat context and responds with a natural, generated voice message.
+
+### 3. 📋 Auto-Generated Task Boards
 - Extracts action items from conversations and documents
 - Assigns tasks to people mentioned in the chat
 - Tracks deadlines and priorities
 - Displays as a formatted checklist alongside the audio summary
 
-### 3. 🌍 Real-Time Audio Translation
+### 4. 🌍 Real-Time Audio Translation
 - Detects non-English voice notes automatically
 - Transcribes natively via **Gemini 1.5 Flash**
 - Translates to your configured language
 - Replies with both text and audio translation
+
+---
+
+## 🎬 Hackathon Video Demo Flow
+
+To demonstrate Pulse's full capabilities, try this flow:
+1. **Group Chaos:** Have team members send various messages, documents, and foreign language voice notes in the chat.
+2. **The Catchup:** Type `/catchup fun` to trigger an energetic audio summary + task checklist.
+3. **The Follow-Up:** Reply directly to Pulse's audio message with a voice note saying *"Hey Pulse, who is handling the API integration?"*
+4. **Agentic Response:** Pulse will fetch the chat context, answer your question conversationally, and reply with a new generated voice note!
 
 ---
 

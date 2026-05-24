@@ -19,11 +19,14 @@ const commands = [
         .setDescription('Personality mode for the summary')
         .setRequired(false)
         .addChoices(
-          { name: 'Standard', value: 'standard' },
-          { name: 'Fun', value: 'fun' },
-          { name: 'Roast', value: 'roast' },
-          { name: 'Story', value: 'story' },
-          { name: 'Urgent', value: 'urgent' }
+          { name: 'Standard (Professional)', value: 'standard' },
+          { name: 'Fun & Energetic', value: 'fun' },
+          { name: 'Sarcastic Roast', value: 'roast' },
+          { name: 'Epic Story', value: 'story' },
+          { name: 'High Urgency', value: 'urgent' },
+          { name: 'Manager (High-Level)', value: 'manager' },
+          { name: 'Empathic & Supportive', value: 'empathic' },
+          { name: 'For Me (Personalized)', value: 'for-me' },
         )
     )
     .toJSON(),

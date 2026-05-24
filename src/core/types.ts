@@ -2,7 +2,7 @@
 export type Platform = 'discord' | 'telegram' | 'whatsapp';
 
 /** Catchup persona modes */
-export type CatchupMode = 'standard' | 'fun' | 'roast' | 'story' | 'urgent';
+export type CatchupMode = 'standard' | 'fun' | 'roast' | 'story' | 'urgent' | 'manager' | 'empathic' | 'for-me';
 
 /** Normalized message from any platform */
 export interface PlatformMessage {
