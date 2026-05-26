@@ -65,6 +65,34 @@ export function convertToOggOpus(inputPath: string): Promise<string> {
   });
 }
 
+/** Speed up an MP3 file using ffmpeg atempo filter */
+export function speedUpAudio(inputPath: string, speedFactor: number = 1.2): Promise<string> {
+  const outputPath = path.join(
+    config.tmpDir,
+    `fast_${Date.now()}.mp3`
+  );
+
+  fs.mkdirSync(config.tmpDir, { recursive: true });
+
+  return new Promise((resolve, reject) => {
+    ffmpeg(inputPath)
+      .audioFilter(`atempo=${speedFactor}`)
+      .audioCodec('libmp3lame')
+      .audioBitrate('128k')
+      .format('mp3')
+      .output(outputPath)
+      .on('end', () => {
+        console.log(`⏩ Sped up audio by ${speedFactor}x: ${outputPath}`);
+        resolve(outputPath);
+      })
+      .on('error', (err: Error) => {
+        console.error(`❌ Speedup conversion failed: ${err.message}`);
+        reject(err);
+      })
+      .run();
+  });
+}
+
 /** Clean up a temporary file */
 export function cleanupTempFile(filePath: string): void {
   try {

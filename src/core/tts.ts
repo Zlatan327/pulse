@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { config } from './config.js';
 import type { AudioResult } from './types.js';
+import { speedUpAudio } from './audio.js';
 
 const elevenlabs = new ElevenLabsClient({
   apiKey: config.elevenlabs.apiKey,
@@ -34,14 +35,30 @@ export async function generateSpeech(text: string): Promise<AudioResult> {
   // Save to file
   fs.writeFileSync(outputPath, buffer);
 
-  // Estimate duration: MP3 at 128kbps → bytes * 8 / 128000 * 1000
-  const estimatedDurationMs = Math.round((buffer.length * 8) / 128000 * 1000);
+  // Estimate initial duration: MP3 at 128kbps -> bytes * 8 / 128000 * 1000
+  let estimatedDurationMs = Math.round((buffer.length * 8) / 128000 * 1000);
+  console.log(`✅ Base Audio generated: ${outputPath} (${(buffer.length / 1024).toFixed(1)}KB, ~${(estimatedDurationMs / 1000).toFixed(1)}s)`);
 
-  console.log(`✅ Audio generated: ${outputPath} (${(buffer.length / 1024).toFixed(1)}KB, ~${(estimatedDurationMs / 1000).toFixed(1)}s)`);
+  // Speed up audio by 1.15x for a more natural, upbeat pace
+  let finalBuffer = buffer;
+  let finalPath = outputPath;
+  try {
+    const fastPath = await speedUpAudio(outputPath, 1.15);
+    finalBuffer = fs.readFileSync(fastPath);
+    estimatedDurationMs = Math.round(estimatedDurationMs / 1.15);
+    
+    // Clean up original slow file
+    if (fs.existsSync(outputPath)) {
+      fs.unlinkSync(outputPath);
+    }
+    finalPath = fastPath;
+  } catch (e) {
+    console.error('⚠️ Failed to speed up audio, falling back to base rate:', e);
+  }
 
   return {
-    buffer,
-    filePath: outputPath,
+    buffer: finalBuffer,
+    filePath: finalPath,
     format: 'mp3',
     durationMs: estimatedDurationMs,
   };
