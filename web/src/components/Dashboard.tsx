@@ -1,10 +1,10 @@
 "use client";
 
-import { Monitor, Phone, Settings2, Twitter, LogOut, CheckCircle2, Play, Volume2, Globe, Clock, MessageSquare, Send } from "lucide-react";
+import { Monitor, Phone, Settings2, Twitter, LogOut, CheckCircle2, Play, Volume2, Globe, Clock, MessageSquare, Send, Hash, User, Radio, Trash2, Plus } from "lucide-react";
 import { signIn, signOut } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { updateUserSettings } from "../app/actions";
+import { updateUserSettings, addWatchlistItem, removeWatchlistItem } from "../app/actions";
 
 interface DashboardProps {
   session: any;
@@ -16,6 +16,7 @@ interface DashboardProps {
   telegramBotUsername: string;
   userSettings?: { voice_style: string, language: string, delivery_preference: string };
   audioSummaries?: any[];
+  watchlists?: any[];
 }
 
 const staggerContainer = {
@@ -33,7 +34,7 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" as const } }
 };
 
-export default function Dashboard({ session, linkedAccounts, telegramBotUsername, userSettings, audioSummaries = [] }: DashboardProps) {
+export default function Dashboard({ session, linkedAccounts, telegramBotUsername, userSettings, audioSummaries = [], watchlists = [] }: DashboardProps) {
   const telegramRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -268,8 +269,60 @@ export default function Dashboard({ session, linkedAccounts, telegramBotUsername
 
         </div>
 
+        {/* Middle Column: X Intelligence */}
+        <div className="lg:col-span-1 flex flex-col">
+          <motion.div variants={fadeUp} className="bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 p-6 rounded-3xl h-full flex flex-col gap-6">
+            <div className="flex items-center gap-3">
+              <Twitter className="w-5 h-5 text-blue-400" />
+              <h2 className="text-xl font-semibold text-zinc-100">X Intelligence</h2>
+            </div>
+            
+            <p className="text-xs text-zinc-400">Add targets to monitor. Pulse will send you automated digests.</p>
+
+            <form action={addWatchlistItem} className="flex flex-col gap-3">
+              <div className="flex gap-2">
+                <select name="type" className="bg-zinc-950 border border-zinc-800 text-zinc-200 text-sm rounded-xl p-2 focus:outline-none focus:border-zinc-600">
+                  <option value="account">Account</option>
+                  <option value="topic">Topic</option>
+                  <option value="space_topic">Spaces</option>
+                </select>
+                <div className="relative flex-1">
+                  <input type="text" name="target" placeholder="@username or keyword" required className="bg-zinc-950 border border-zinc-800 text-zinc-200 text-sm rounded-xl p-2 w-full focus:outline-none focus:border-zinc-600" />
+                </div>
+                <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-xl transition-colors">
+                  <Plus className="w-5 h-5" />
+                </button>
+              </div>
+            </form>
+
+            <div className="flex flex-col gap-2 overflow-y-auto max-h-[400px] pr-1 custom-scrollbar">
+              {watchlists.length === 0 ? (
+                <div className="text-zinc-500 text-sm p-4 text-center border border-dashed border-zinc-800 rounded-xl">No active monitors.</div>
+              ) : (
+                watchlists.map((item, i) => (
+                  <motion.div key={item.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-zinc-950/50 border border-zinc-800/50 p-3 rounded-xl flex items-center justify-between group">
+                    <div className="flex items-center gap-3">
+                      {item.type === 'account' ? <User className="w-4 h-4 text-blue-400" /> : item.type === 'topic' ? <Hash className="w-4 h-4 text-green-400" /> : <Radio className="w-4 h-4 text-purple-400" />}
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-zinc-200">{item.target}</span>
+                        <span className="text-[10px] text-zinc-500 uppercase tracking-wider">{item.type.replace('_', ' ')} • {item.frequency}</span>
+                      </div>
+                    </div>
+                    <form action={removeWatchlistItem}>
+                      <input type="hidden" name="id" value={item.id} />
+                      <button type="submit" className="text-zinc-600 hover:text-red-400 transition-colors p-1">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </form>
+                  </motion.div>
+                ))
+              )}
+            </div>
+          </motion.div>
+        </div>
+
         {/* Right Column: Recent Summaries */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-1 flex flex-col">
           <motion.div variants={fadeUp} className="bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 p-6 rounded-3xl h-full flex flex-col">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-zinc-100">Recent Summaries</h2>

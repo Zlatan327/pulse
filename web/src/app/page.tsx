@@ -12,6 +12,7 @@ export default async function Home() {
   };
   let userSettings = { voice_style: 'Standard (Professional)', language: 'English', delivery_preference: 'x' };
   let audioSummaries: any[] = [];
+  let watchlists: any[] = [];
 
   if (session?.user?.id) {
     try {
@@ -39,6 +40,13 @@ export default async function Home() {
         LIMIT 5
       `).all(session.user.id) as any[];
 
+      // 4. Get watchlists
+      watchlists = db.prepare(`
+        SELECT * FROM watchlists
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+      `).all(session.user.id) as any[];
+
     } catch (e) {
       // Tables might not exist yet if Auth.js hasn't initialized it, ignore
     }
@@ -53,5 +61,6 @@ export default async function Home() {
     telegramBotUsername={telegramBotUsername} 
     userSettings={userSettings}
     audioSummaries={audioSummaries}
+    watchlists={watchlists}
   />;
 }

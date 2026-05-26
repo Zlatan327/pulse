@@ -31,6 +31,16 @@ db.exec(`
     FOREIGN KEY(user_id) REFERENCES users(id)
   );
 
+  CREATE TABLE IF NOT EXISTS watchlists (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    type TEXT NOT NULL,
+    target TEXT NOT NULL,
+    frequency TEXT DEFAULT 'daily',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+  );
+
   CREATE TABLE IF NOT EXISTS audio_summaries (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,

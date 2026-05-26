@@ -12,6 +12,7 @@ import {
 import type { PlatformMessage, CatchupMode } from '../core/types.js';
 import fs from 'fs';
 import path from 'path';
+import { startXIntelligence } from './intelligence.js';
 
 /** Start the X (Twitter) adapter */
 export async function startX(): Promise<Scraper> {
@@ -307,6 +308,9 @@ export async function startX(): Promise<Scraper> {
       console.error('❌ Error in X polling loop:', e.message);
     }
   }, 60000); // Poll every 60 seconds
+
+  // Start the X Intelligence Scheduler
+  startXIntelligence(scraper);
 
   return scraper;
 }

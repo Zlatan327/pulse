@@ -94,6 +94,16 @@ export function initDatabase(): void {
       duration_seconds INTEGER NOT NULL,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS watchlists (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      target TEXT NOT NULL,
+      frequency TEXT DEFAULT 'daily',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(user_id) REFERENCES users(id)
+    );
   `);
 
   console.log('✅ Database initialized');
@@ -301,5 +311,24 @@ export function getAllActiveDailyChats(): ChatSettings[] {
     platform: r.platform as Platform,
     dailyDigest: Boolean(r.daily_digest),
     digestTime: r.digest_time
+  }));
+}
+
+export interface WatchlistItem {
+  id: string;
+  userId: string;
+  type: 'account' | 'topic' | 'space_topic';
+  target: string;
+  frequency: string;
+}
+
+export function getAllWatchlists(): WatchlistItem[] {
+  const rows = db.prepare(`SELECT * FROM watchlists`).all() as any[];
+  return rows.map(r => ({
+    id: r.id,
+    userId: r.user_id,
+    type: r.type,
+    target: r.target,
+    frequency: r.frequency
   }));
 }
