@@ -12,15 +12,17 @@ export async function updateUserSettings(formData: FormData) {
 
   const voiceStyle = formData.get("voiceStyle") as string;
   const language = formData.get("language") as string;
+  const deliveryPreference = formData.get("deliveryPreference") as string || "x";
 
   const stmt = db.prepare(`
-    INSERT INTO user_settings (user_id, voice_style, language)
-    VALUES (?, ?, ?)
+    INSERT INTO user_settings (user_id, voice_style, language, delivery_preference)
+    VALUES (?, ?, ?, ?)
     ON CONFLICT(user_id) DO UPDATE SET 
       voice_style = excluded.voice_style,
-      language = excluded.language
+      language = excluded.language,
+      delivery_preference = excluded.delivery_preference
   `);
 
-  stmt.run(session.user.id, voiceStyle, language);
+  stmt.run(session.user.id, voiceStyle, language, deliveryPreference);
   revalidatePath("/");
 }

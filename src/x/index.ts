@@ -103,12 +103,12 @@ export async function startX(): Promise<Scraper> {
           // 3. Fetch the full thread
           console.log(`🔍 Fetching thread: ${tweet.conversationId}`);
           const threadQuery = `conversation_id:${tweet.conversationId}`;
-          const threadResults = scraper.searchTweets(threadQuery, 50, SearchMode.Latest);
+          const threadResults = scraper.searchTweets(threadQuery, 100, SearchMode.Latest);
           
           const threadTweets = [];
           for await (const t of threadResults) {
             threadTweets.push(t);
-            if (threadTweets.length >= 50) break;
+            if (threadTweets.length >= 100) break;
           }
 
           // Sort chronologically (oldest first)
@@ -137,6 +137,7 @@ export async function startX(): Promise<Scraper> {
           
           let mode: CatchupMode = 'standard';
           let masterUserId: string | null = null;
+          let deliveryPreference: string = 'x';
           
           // Try to get user settings if they linked their X account
           try {
@@ -146,7 +147,7 @@ export async function startX(): Promise<Scraper> {
              const db = new Database(dbPath);
              
              const row = db.prepare(`
-               SELECT u.id as userId, s.voice_style as voiceStyle 
+               SELECT u.id as userId, s.voice_style as voiceStyle, s.delivery_preference as deliveryPref
                FROM accounts a 
                JOIN users u ON a.userId = u.id 
                LEFT JOIN user_settings s ON u.id = s.user_id 
@@ -155,6 +156,7 @@ export async function startX(): Promise<Scraper> {
              
              if (row) {
                masterUserId = row.userId;
+               deliveryPreference = row.deliveryPref || 'x';
                if (row.voiceStyle) {
                  if (row.voiceStyle.includes('Marcus')) mode = 'fun';
                  else if (row.voiceStyle.includes('RoastMaster')) mode = 'roast';
@@ -186,68 +188,111 @@ export async function startX(): Promise<Scraper> {
              } catch(e) {}
           }
 
-          // 6. Cross-Platform Telegram DM Routing
-          console.log(`✉️ Checking if @${tweet.username} is linked to Telegram...`);
-          
-          let telegramLinked = false;
-          try {
-            // Need a separate DB connection or import the existing one
-            // Import dynamically since we are in an ES module
-            const { default: Database } = await import('better-sqlite3');
-            const path = await import('path');
-            const dbPath = path.resolve(config.dataDir, 'pulse.db');
-            const db = new Database(dbPath);
+          // 6. Smart Delivery Routing based on user preference
+          console.log(`📤 Delivery preference: ${deliveryPreference}`);
+          let delivered = false;
 
-            // Find the Telegram ID for this Twitter user ID
-            const stmt = db.prepare(`
-              SELECT t.providerAccountId AS telegramId 
-              FROM accounts t 
-              JOIN accounts x ON t.userId = x.userId 
-              WHERE x.provider = 'twitter' 
-                AND x.providerAccountId = ? 
-                AND t.provider = 'telegram'
-            `);
-            
-            const linkedAccount = stmt.get(String(tweet.userId)) as { telegramId: string } | undefined;
+          if (deliveryPreference === 'discord') {
+            // --- Discord DM ---
+            console.log(`✉️ Routing audio to Discord DM for @${tweet.username}...`);
+            try {
+              const { default: Database } = await import('better-sqlite3');
+              const pathMod = await import('path');
+              const dbPath = pathMod.resolve(config.dataDir, 'pulse.db');
+              const db = new Database(dbPath);
 
-            if (linkedAccount?.telegramId) {
-              console.log(`✅ Linked Telegram account found (ID: ${linkedAccount.telegramId})`);
-              
-              // Import the telegram bot dynamically to avoid circular dependencies
-              const { bot } = await import('../telegram/index.js');
-              const { InputFile } = await import('grammy');
-              
-              if (bot) {
-                // Send the audio via Telegram DM!
-                await bot.api.sendAudio(
-                  linkedAccount.telegramId, 
-                  new InputFile(audio.filePath),
-                  { caption: `🔊 Here is your Pulse audio summary from X (@${tweet.username}):\n\n${summary.text}` }
-                );
-                telegramLinked = true;
-                console.log('🚀 Telegram DM sent successfully!');
+              const linkedDiscord = db.prepare(`
+                SELECT d.providerAccountId AS discordId 
+                FROM accounts d 
+                JOIN accounts x ON d.userId = x.userId 
+                WHERE x.provider = 'twitter' 
+                  AND x.providerAccountId = ? 
+                  AND d.provider = 'discord'
+              `).get(String(tweet.userId)) as { discordId: string } | undefined;
+              db.close();
+
+              if (linkedDiscord?.discordId) {
+                console.log(`✅ Linked Discord account found (ID: ${linkedDiscord.discordId})`);
+                const { client } = await import('../discord/index.js');
+                
+                if (client) {
+                  const user = await client.users.fetch(linkedDiscord.discordId);
+                  const { AttachmentBuilder } = await import('discord.js');
+                  const attachment = new AttachmentBuilder(audio.filePath, { name: 'pulse_summary.mp3' });
+                  
+                  await user.send({
+                    content: `🎧 **Pulse Audio Summary** from X\n\n> Thread by @${tweet.username}\n> ${summary.title || 'Thread Summary'}\n\n${summary.text}`,
+                    files: [attachment],
+                  });
+                  delivered = true;
+                  console.log('🚀 Discord DM sent successfully!');
+                } else {
+                  console.log('⚠️ Discord bot is not running.');
+                }
               } else {
-                 console.log('⚠️ Telegram bot is not running. Start it by adding telegram to ENABLED_PLATFORMS.');
+                console.log('⚠️ No linked Discord account found, falling back to X reply.');
               }
-            } else {
-              console.log('⚠️ No linked Telegram account found.');
+            } catch (e: any) {
+              console.error('⚠️ Discord DM failed:', e.message);
             }
-            db.close();
-          } catch (e: any) {
-            console.error('⚠️ Could not check linked accounts:', e.message);
+          } else if (deliveryPreference === 'telegram') {
+            // --- Telegram DM ---
+            console.log(`✉️ Routing audio to Telegram DM for @${tweet.username}...`);
+            try {
+              const { default: Database } = await import('better-sqlite3');
+              const pathMod = await import('path');
+              const dbPath = pathMod.resolve(config.dataDir, 'pulse.db');
+              const db = new Database(dbPath);
+
+              const linkedTelegram = db.prepare(`
+                SELECT t.providerAccountId AS telegramId 
+                FROM accounts t 
+                JOIN accounts x ON t.userId = x.userId 
+                WHERE x.provider = 'twitter' 
+                  AND x.providerAccountId = ? 
+                  AND t.provider = 'telegram'
+              `).get(String(tweet.userId)) as { telegramId: string } | undefined;
+              db.close();
+
+              if (linkedTelegram?.telegramId) {
+                console.log(`✅ Linked Telegram account found (ID: ${linkedTelegram.telegramId})`);
+                const { bot } = await import('../telegram/index.js');
+                const { InputFile } = await import('grammy');
+                
+                if (bot) {
+                  await bot.api.sendAudio(
+                    linkedTelegram.telegramId, 
+                    new InputFile(audio.filePath),
+                    { caption: `🔊 Here is your Pulse audio summary from X (@${tweet.username}):\n\n${summary.text}` }
+                  );
+                  delivered = true;
+                  console.log('🚀 Telegram DM sent successfully!');
+                } else {
+                  console.log('⚠️ Telegram bot is not running.');
+                }
+              } else {
+                console.log('⚠️ No linked Telegram account found, falling back to X reply.');
+              }
+            } catch (e: any) {
+              console.error('⚠️ Telegram DM failed:', e.message);
+            }
           }
 
-          // Option C: Public Reply + Telegram DM
+          // --- Public X Reply (default, or fallback if DM delivery failed) ---
           console.log(`💬 Replying publicly to tweet ${tweet.id}...`);
           try {
-             if (telegramLinked) {
+             if (delivered) {
                 await scraper.sendTweet(
-                  `@${tweet.username} I've summarized this thread for you! Check your Telegram DMs for the audio catchup 🎧`, 
+                  `@${tweet.username} I've summarized this thread for you! Check your ${deliveryPreference === 'discord' ? 'Discord' : 'Telegram'} DMs for the audio catchup 🎧`, 
                   tweet.id
                 );
              } else {
+                // Either preference is 'x' or DM failed — reply with the text summary
+                const truncatedSummary = summary.text.length > 240 
+                  ? summary.text.substring(0, 237) + '...' 
+                  : summary.text;
                 await scraper.sendTweet(
-                  `@${tweet.username} I've generated your audio summary! To receive it via DM, please link your Telegram account on the Pulse Dashboard (link in bio).`, 
+                  `@${tweet.username} Here's your thread summary:\n\n${truncatedSummary}`, 
                   tweet.id
                 );
              }

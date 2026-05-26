@@ -1,6 +1,6 @@
 "use client";
 
-import { Monitor, Phone, Settings2, Twitter, LogOut, CheckCircle2, Play, Volume2, Globe, Clock } from "lucide-react";
+import { Monitor, Phone, Settings2, Twitter, LogOut, CheckCircle2, Play, Volume2, Globe, Clock, MessageSquare, Send } from "lucide-react";
 import { signIn, signOut } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
@@ -11,9 +11,10 @@ interface DashboardProps {
   linkedAccounts: {
     twitter: boolean;
     telegram: boolean;
+    discord: boolean;
   };
   telegramBotUsername: string;
-  userSettings?: { voice_style: string, language: string };
+  userSettings?: { voice_style: string, language: string, delivery_preference: string };
   audioSummaries?: any[];
 }
 
@@ -179,6 +180,26 @@ export default function Dashboard({ session, linkedAccounts, telegramBotUsername
               )}
             </motion.div>
 
+            {/* Discord Card */}
+            <motion.div whileHover={{ y: -2 }} className="bg-zinc-950 border border-zinc-800 p-4 rounded-xl flex items-center justify-between transition-shadow hover:shadow-[0_4px_20px_rgba(88,101,242,0.15)] group">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${linkedAccounts.discord ? 'bg-[#5865F2]/10' : 'bg-zinc-800/50'}`}>
+                  <MessageSquare className={`w-5 h-5 ${linkedAccounts.discord ? 'text-[#5865F2]' : 'text-zinc-500'}`} />
+                </div>
+                <div>
+                  <h3 className="font-medium text-zinc-200 text-sm">Discord</h3>
+                  <p className="text-xs text-zinc-500">{linkedAccounts.discord ? "Active" : "Not connected"}</p>
+                </div>
+              </div>
+              {linkedAccounts.discord ? (
+                <CheckCircle2 className="w-5 h-5 text-green-500" />
+              ) : (
+                <button onClick={() => signIn('discord')} className="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 py-1.5 px-3 rounded-lg font-medium transition-colors">
+                  Connect
+                </button>
+              )}
+            </motion.div>
+
             {/* Telegram Card */}
             <motion.div whileHover={{ y: -2 }} className="bg-zinc-950 border border-zinc-800 p-4 rounded-xl flex items-center justify-between transition-shadow hover:shadow-[0_4px_20px_rgba(59,130,246,0.15)] group">
               <div className="flex items-center gap-3">
@@ -226,6 +247,19 @@ export default function Dashboard({ session, linkedAccounts, telegramBotUsername
                     <option>Spanish</option>
                     <option>French</option>
                     <option>German</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 mt-2">
+                <label className="text-xs text-zinc-400 uppercase tracking-wider font-semibold">Delivery Preference</label>
+                <p className="text-xs text-zinc-500 -mt-1">Where to send audio when you tag @pulze_agent on X</p>
+                <div className="relative">
+                  <Send className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <select name="deliveryPreference" defaultValue={userSettings?.delivery_preference || "x"} onChange={(e) => e.target.form?.requestSubmit()} className="bg-zinc-950 border border-zinc-800 text-zinc-200 text-sm rounded-xl p-3 pl-9 w-full focus:outline-none focus:border-zinc-600 appearance-none">
+                    <option value="x">Reply on X (Twitter)</option>
+                    <option value="discord" disabled={!linkedAccounts.discord}>Discord DM {!linkedAccounts.discord ? '(not connected)' : ''}</option>
+                    <option value="telegram" disabled={!linkedAccounts.telegram}>Telegram DM {!linkedAccounts.telegram ? '(not connected)' : ''}</option>
                   </select>
                 </div>
               </div>

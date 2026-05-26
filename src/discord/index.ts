@@ -4,6 +4,9 @@ import { handleReady } from './events/ready.js';
 import { handleMessageCreate } from './events/messageCreate.js';
 import { handleInteractionCreate } from './events/interactionCreate.js';
 
+/** The Discord client instance, available after startDiscord() resolves */
+export let client: Client | null = null;
+
 /** Start the Discord bot adapter */
 export async function startDiscord(): Promise<Client> {
   validatePlatform('discord');
@@ -11,7 +14,7 @@ export async function startDiscord(): Promise<Client> {
 
 
 
-  const client = new Client({
+  client = new Client({
     intents: [
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildMessages,
