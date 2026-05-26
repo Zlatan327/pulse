@@ -6,7 +6,6 @@ import { handleCatchup } from './commands/catchup.js';
 import { handleAudioReply } from './commands/audioReply.js';
 import { handleHelp } from './commands/help.js';
 import { handleDaily } from './commands/daily.js';
-import { handleDaily } from './commands/daily.js';
 
 export type PulseContext = FileFlavor<Context>;
 
@@ -34,6 +33,7 @@ export async function startTelegram(): Promise<Bot<PulseContext>> {
   // Set bot commands menu (fire-and-forget — don't block startup)
   bot.api.setMyCommands([
     { command: 'catchup', description: 'Get an audio summary of recent messages' },
+    { command: 'daily', description: 'Enable/disable automated daily summaries' },
     { command: 'help', description: 'See advanced Pulse catchup instructions' }
   ]).catch((err) => console.warn('⚠️ Could not set commands menu (non-critical):', err.message));
 

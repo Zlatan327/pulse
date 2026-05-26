@@ -1,4 +1,4 @@
-import { PulseContext } from '../index.js';
+import type { PulseContext } from '../index.js';
 import { updateChatSettings } from '../../core/index.js';
 
 export async function handleDaily(ctx: PulseContext): Promise<void> {

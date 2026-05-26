@@ -34,18 +34,21 @@ export async function handleCatchup(ctx: Context): Promise<void> {
 
   const chatId = String(ctx.chat.id);
 
-  const match = (ctx.match as string) || '';
-  const args = match.split(' ').map(s => s.trim()).filter(Boolean);
-  
+  // Parse all arguments from the command text
+  const args = ((ctx.match as string) || '').split(' ').map(s => s.trim()).filter(Boolean);
+
   const requester = ctx.from?.first_name || ctx.from?.username || 'user';
-  
-  // 1. Check user settings from db
+
+  // Check user settings from db
   const userSettings = ctx.from?.id ? getUserSettingsByPlatformId('telegram', String(ctx.from.id)) : null;
-  
+
   let mode: CatchupMode = 'standard';
   let targetUser: string | undefined;
   let sinceDate: Date | undefined;
-  
+  let format = 'audio';
+  let delivery = 'public';
+
+  // Apply saved voice style if user has one
   if (userSettings?.voiceStyle) {
     const style = userSettings.voiceStyle;
     if (style.includes('Marcus')) mode = 'fun';
@@ -53,16 +56,21 @@ export async function handleCatchup(ctx: Context): Promise<void> {
     else if (style.includes('Storyteller')) mode = 'story';
   }
 
-  // Parse arguments for mode, target user, and timeframe
+  // Parse arguments for mode, target user, timeframe, format, and delivery
   const modes = ['standard', 'fun', 'roast', 'story', 'urgent', 'manager', 'empathic', 'for-me'];
   for (const arg of args) {
-    if (modes.includes(arg.toLowerCase())) {
-      mode = arg.toLowerCase() as CatchupMode;
+    const lArg = arg.toLowerCase();
+    if (lArg.match(/^\d+(m|min|mins|minutes|h|hr|hrs|hours|d|day|days)$/)) {
+      const parsed = parseTimeframeToDate(arg);
+      if (parsed) sinceDate = parsed;
+    } else if (lArg === 'text') {
+      format = 'text';
+    } else if (lArg === 'private') {
+      delivery = 'private';
+    } else if (modes.includes(lArg)) {
+      mode = lArg as CatchupMode;
     } else if (arg.startsWith('@')) {
       targetUser = arg.substring(1);
-    } else {
-      const parsedDate = parseTimeframeToDate(arg);
-      if (parsedDate) sinceDate = parsedDate;
     }
   }
 
@@ -85,12 +93,7 @@ export async function handleCatchup(ctx: Context): Promise<void> {
     return;
   }
 
-  let sinceDate: Date | undefined;
-  if (timeframeStr) {
-    sinceDate = parseTimeframeToDate(timeframeStr) || undefined;
-  }
-
-  // Get messages
+  // Get messages since last catchup if no explicit timeframe
   if (!sinceDate) {
     const lastCatchup = getLastCatchup(chatId, 'telegram');
     if (lastCatchup) sinceDate = lastCatchup.timestamp;
@@ -107,7 +110,7 @@ export async function handleCatchup(ctx: Context): Promise<void> {
   const statusMsg = await ctx.reply(`⏳ Summarizing ${messages.length} messages...`, { reply_to_message_id: ctx.message?.message_id });
 
   // Generate summary
-  const summary = await summarizeMessages(messages, mode, ctx.from?.first_name, targetUser);
+  const summary = await summarizeMessages(messages, mode, requester, targetUser);
 
   const timeFrom = summary.timespan.from.toLocaleString();
   const timeTo = summary.timespan.to.toLocaleString();
@@ -128,7 +131,7 @@ export async function handleCatchup(ctx: Context): Promise<void> {
 
   try {
     const sendTarget = delivery === 'private' ? ctx.from?.id : chatId;
-    
+
     if (!sendTarget) {
       throw new Error('Cannot determine target');
     }
@@ -138,14 +141,21 @@ export async function handleCatchup(ctx: Context): Promise<void> {
     } else {
       const audio = await generateSpeech(summary.text);
       const oggPath = await convertToOggOpus(audio.filePath);
-      
+
       caption += `\n\n🎙️ **Reply to this message with a voice note to ask me follow-up questions!**`;
-      
+
       const inputFile = new InputFile(oggPath);
       await ctx.api.sendVoice(sendTarget, inputFile, { caption, parse_mode: 'Markdown' });
-      
+
       cleanupTempFile(oggPath);
       cleanupAudioFile(audio.filePath);
+
+      // Log summary if user has settings
+      if (userSettings?.userId) {
+        logSummary(userSettings.userId, 'telegram', summary.title || 'Telegram Summary', Math.round(audio.durationMs / 1000));
+      }
+
+      console.log(`📋 TG Catchup delivered: ${messages.length} messages → ${(audio.durationMs / 1000).toFixed(1)}s audio`);
     }
 
     if (delivery === 'private' && ctx.chat?.type !== 'private') {
@@ -157,7 +167,7 @@ export async function handleCatchup(ctx: Context): Promise<void> {
     markCatchup(chatId, 'telegram', messages.length);
 
   } catch (error) {
-    console.error('❌ Failed to deliver Telegram catchup:', error);
+    console.error('❌ Telegram catchup error:', error);
     await ctx.api.editMessageText(chatId, statusMsg.message_id, `❌ Something went wrong generating your catchup.`);
   }
 }

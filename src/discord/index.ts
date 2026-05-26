@@ -33,7 +33,7 @@ export async function startDiscord(): Promise<Client> {
     messages.forEach(message => deleteMessageByExternalId(message.id, 'discord'));
   });
 
-  client.login(config.discord.token);
+  await client.login(config.discord.token);
   return client;
 }
 

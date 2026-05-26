@@ -1,5 +1,4 @@
 import type { ChatInputCommandInteraction } from 'discord.js';
-import { AttachmentBuilder } from 'discord.js';
 import {
   getRecentMessages,
   getLastCatchup,

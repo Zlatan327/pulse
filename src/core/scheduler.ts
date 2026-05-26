@@ -2,8 +2,9 @@ import cron from 'node-cron';
 import { getAllActiveDailyChats, getRecentMessages, markCatchup } from './db.js';
 import { summarizeMessages, generateDetailedMinutes } from './summarizer.js';
 import { generateSpeech, cleanupAudioFile } from './tts.js';
-import { convertToOggOpus, cleanupTempFile } from './utils.js';
+import { convertToOggOpus, cleanupTempFile } from './audio.js';
 import { config } from './config.js';
+import type { Platform } from './types.js';
 import path from 'path';
 import fs from 'fs';
 
@@ -18,7 +19,6 @@ export function startScheduler(clients: SchedulerClients) {
   // Run every minute to check if it's time for any chat's digest
   cron.schedule('* * * * *', async () => {
     const now = new Date();
-    // format as HH:MM
     const currentHour = String(now.getHours()).padStart(2, '0');
     const currentMinute = String(now.getMinutes()).padStart(2, '0');
     const currentTimeStr = `${currentHour}:${currentMinute}`;
@@ -37,7 +37,7 @@ export function startScheduler(clients: SchedulerClients) {
   });
 }
 
-async function sendDailyDigest(chatId: string, platform: 'discord' | 'telegram' | 'whatsapp', clients: SchedulerClients) {
+async function sendDailyDigest(chatId: string, platform: Platform, clients: SchedulerClients) {
   // Get messages from the last 24 hours
   const sinceDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const messages = getRecentMessages(chatId, platform, 500, sinceDate);
