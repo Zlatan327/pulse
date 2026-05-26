@@ -43,20 +43,29 @@ Type `/catchup` in any group chat. Pulse drops a **30-second audio clip** summar
 - **Advanced Querying**:
   - **Timeframes**: Ask for `/catchup 1hr` or use the Discord `timeframe` slash command option.
   - **User Targeting**: Ask for `/catchup @username` to focus the summary heavily on one person.
+  - **Text-Only Mode**: Skip the audio and get a fast text breakdown (Telegram: `/catchup text`, Discord: `/catchup format:Text Only`).
+  - **Private Delivery**: Get the summary sent directly to your DMs instead of the public channel (Telegram: `/catchup private`, Discord: `/catchup delivery:Private (DM)`).
   - **Contextual Thread Summaries**: Reply to any message with `/catchup` (or `@PulseBot summarize` in Discord) to summarize the conversation exactly from that point onward!
 
-### 2. 🗣️ Voice Conversation Agent
+### 2. 📅 Automated Daily Minutes (`/daily`)
+- Schedule a daily digest to be delivered to your group chat automatically.
+- Pulse drops a short audio summary alongside a detailed **Markdown meeting minutes** file containing action items, key discussions, and overall chat vibe.
+- **Opt-in commands**:
+  - Discord: `/daily enable:True time:18:00`
+  - Telegram: `/daily on 18:00`
+
+### 3. 🗣️ Voice Conversation Agent
 - Pulse acts as a fully conversational AI participant.
 - **Direct Voice Replies:** Reply to Pulse's audio summary with your own voice note to ask follow-up questions!
 - Pulse remembers the chat context and responds with a natural, generated voice message.
 
-### 3. 📋 Auto-Generated Task Boards
+### 4. 📋 Auto-Generated Task Boards
 - Extracts action items from conversations and documents
 - Assigns tasks to people mentioned in the chat
 - Tracks deadlines and priorities
 - Displays as a formatted checklist alongside the audio summary
 
-### 4. 🌍 Real-Time Audio Translation
+### 5. 🌍 Real-Time Audio Translation
 - Detects non-English voice notes automatically
 - Transcribes natively via **Gemini 1.5 Flash**
 - Translates to your configured language
