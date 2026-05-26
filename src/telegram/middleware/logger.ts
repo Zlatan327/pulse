@@ -189,6 +189,19 @@ export async function messageLogger(ctx: Context, next: NextFunction): Promise<v
           filePath: pdfPath,
         });
         cleanupTempFile(pdfPath);
+      } else if (msg.document.mime_type?.startsWith('text/') || (msg.document.file_name?.toLowerCase() || '').match(/\.(txt|md|csv)$/)) {
+        const txtPath = path.join(config.tmpDir, `tg_txt_${msg.message_id}.txt`);
+        await downloadTelegramFile(ctx, msg.document.file_id, txtPath);
+
+        const textData = fs.readFileSync(txtPath, 'utf8');
+
+        logMessage({
+          ...baseMsg,
+          text: `${forwardPrefix}[File: ${msg.document.file_name || 'document.txt'}] ${textData.substring(0, 5000)}`,
+          messageType: 'document',
+          filePath: txtPath,
+        });
+        cleanupTempFile(txtPath);
       } else {
         logMessage({
           ...baseMsg,

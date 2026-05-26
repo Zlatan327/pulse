@@ -1,5 +1,5 @@
 import { Client, GatewayIntentBits, Partials } from 'discord.js';
-import { config, validatePlatform, initDatabase } from '../core/index.js';
+import { config, validatePlatform, initDatabase, deleteMessageByExternalId } from '../core/index.js';
 import { handleReady } from './events/ready.js';
 import { handleMessageCreate } from './events/messageCreate.js';
 import { handleInteractionCreate } from './events/interactionCreate.js';
@@ -23,8 +23,15 @@ export async function startDiscord(): Promise<Client> {
   handleMessageCreate(client);
   handleInteractionCreate(client);
 
-  // Login
-  await client.login(config.discord.token);
+  // Handle deleted messages
+  client.on('messageDelete', (message) => {
+    deleteMessageByExternalId(message.id, 'discord');
+  });
+  client.on('messageDeleteBulk', (messages) => {
+    messages.forEach(message => deleteMessageByExternalId(message.id, 'discord'));
+  });
+
+  client.login(config.discord.token);
   return client;
 }
 

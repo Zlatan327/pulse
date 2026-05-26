@@ -186,6 +186,25 @@ export function handleMessageCreate(client: Client): void {
           cleanupTempFile(pdfPath);
           continue;
         }
+
+        // Text/Markdown documents
+        const fileNameLower = attachment.name.toLowerCase();
+        if (attachment.contentType?.startsWith('text/') || fileNameLower.endsWith('.txt') || fileNameLower.endsWith('.md') || fileNameLower.endsWith('.csv')) {
+          const txtPath = path.join(config.tmpDir, `discord_txt_${message.id}.txt`);
+          await downloadFile(attachment.url, txtPath);
+
+          const textData = fs.readFileSync(txtPath, 'utf8');
+
+          logMessage({
+            ...baseMsg,
+            text: `[File: ${attachment.name}] ${textData.substring(0, 5000)}`,
+            messageType: 'document',
+            filePath: txtPath,
+          });
+
+          cleanupTempFile(txtPath);
+          continue;
+        }
       } catch (error) {
         console.error(`❌ Error processing attachment: ${error}`);
       }

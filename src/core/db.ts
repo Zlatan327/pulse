@@ -247,3 +247,11 @@ export function getUserSettingsByPlatformId(platform: string, providerAccountId:
     language: row.language || 'English'
   };
 }
+
+/** Delete a message from the local database by its platform ID */
+export function deleteMessageByExternalId(externalId: string, platform: Platform): void {
+  db.prepare(`
+    DELETE FROM messages 
+    WHERE external_id = ? AND platform = ?
+  `).run(externalId, platform);
+}

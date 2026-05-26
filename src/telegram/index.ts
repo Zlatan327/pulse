@@ -4,6 +4,7 @@ import { config, validatePlatform, initDatabase } from '../core/index.js';
 import { messageLogger } from './middleware/logger.js';
 import { handleCatchup } from './commands/catchup.js';
 import { handleAudioReply } from './commands/audioReply.js';
+import { handleHelp } from './commands/help.js';
 
 export type PulseContext = FileFlavor<Context>;
 
@@ -23,12 +24,14 @@ export async function startTelegram(): Promise<Bot<PulseContext>> {
 
   // Register commands
   bot.command('catchup', handleCatchup);
+  bot.command('help', handleHelp);
   bot.on('message:audio', handleAudioReply);
   bot.on('message:voice', handleAudioReply);
 
   // Set bot commands menu (fire-and-forget — don't block startup)
   bot.api.setMyCommands([
     { command: 'catchup', description: 'Get an audio summary of recent messages' },
+    { command: 'help', description: 'See advanced Pulse catchup instructions' }
   ]).catch((err) => console.warn('⚠️ Could not set commands menu (non-critical):', err.message));
 
   // Error handler
