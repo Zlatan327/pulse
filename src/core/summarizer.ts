@@ -70,6 +70,8 @@ Your task is to create a spoken summary that will be converted to audio. Follow 
 - Start with a brief time context (e.g., "In the last few hours..." or "Since you've been away...")
 - Highlight KEY decisions, important updates, and action items
 - Attribute actions and statements to people by their name
+- If someone shared a file or document, summarize its contents and state who shared it
+- Even if the conversation is very short or just consists of a file upload, briefly describe what was shared or said. Do NOT say there are no updates.
 - Skip small talk, greetings, reactions, and filler messages
 - If there are deadlines or urgent items, mention them prominently
 - Do NOT use markdown, bullet points, or formatting — this is for speech
