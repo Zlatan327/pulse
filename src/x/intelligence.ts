@@ -96,8 +96,15 @@ export function startXIntelligence(scraper: Scraper) {
 
   // Run every 2 hours (120 minutes)
   const INTERVAL_MS = 120 * 60 * 1000;
+  
+  // Track the most recent tweet ID for each watchlist item to avoid duplicates
+  const lastSeenMap = new Map<string, string>();
+  let isPolling = false;
 
   setInterval(async () => {
+    if (isPolling) return;
+    isPolling = true;
+
     try {
       console.log('🔍 Running X Intelligence routines...');
       const watchlists = getAllWatchlists();
@@ -115,7 +122,11 @@ export function startXIntelligence(scraper: Scraper) {
         if (item.type === 'account') {
           console.log(`   Monitoring account: ${item.target}`);
           const targetUser = item.target.replace('@', '');
-          const query = `from:${targetUser}`;
+          let query = `from:${targetUser}`;
+          
+          const sinceId = lastSeenMap.get(item.id);
+          if (sinceId) query += ` since_id:${sinceId}`;
+
           const results = scraper.searchTweets(query, 15, SearchMode.Latest);
           
           for await (const t of results) {
@@ -137,7 +148,11 @@ export function startXIntelligence(scraper: Scraper) {
         } 
         else if (item.type === 'topic') {
           console.log(`   Monitoring topic: ${item.target}`);
-          const query = `${item.target} min_faves:10`; // filtering for quality
+          let query = `${item.target} min_faves:10`; // filtering for quality
+          
+          const sinceId = lastSeenMap.get(item.id);
+          if (sinceId) query += ` since_id:${sinceId}`;
+
           const results = scraper.searchTweets(query, 20, SearchMode.Latest);
           
           for await (const t of results) {
@@ -159,7 +174,11 @@ export function startXIntelligence(scraper: Scraper) {
         }
         else if (item.type === 'space_topic') {
           console.log(`   Monitoring Spaces discourse: ${item.target}`);
-          const query = `twitter spaces ${item.target}`;
+          let query = `twitter spaces ${item.target}`;
+          
+          const sinceId = lastSeenMap.get(item.id);
+          if (sinceId) query += ` since_id:${sinceId}`;
+
           const results = scraper.searchTweets(query, 20, SearchMode.Latest);
           
           for await (const t of results) {
@@ -184,17 +203,25 @@ export function startXIntelligence(scraper: Scraper) {
           // Chronological order
           messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
           
+          // Update the last seen ID
+          const latestId = messages[messages.length - 1].id;
+          lastSeenMap.set(item.id, latestId);
+
           // Summarize and generate audio
           const summary = await summarizeMessages(messages, 'standard', 'Pulse Intel');
           const audio = await generateSpeech(summary.text);
           
           // Dispatch
           await dispatchAudio(item.userId, summary, audio.filePath, title, context);
+        } else {
+          console.log(`   No new updates for ${item.target} since last check.`);
         }
       }
 
     } catch (e: any) {
       console.error('❌ Error in X Intelligence routine:', e.message);
+    } finally {
+      isPolling = false;
     }
   }, INTERVAL_MS);
 

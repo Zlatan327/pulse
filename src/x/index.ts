@@ -72,7 +72,15 @@ export async function startX(): Promise<Scraper> {
   };
 
   // Polling loop
+  let isPolling = false;
+  
   setInterval(async () => {
+    if (isPolling) {
+      console.log('⏳ Skipping X poll interval (previous execution still running)...');
+      return;
+    }
+    isPolling = true;
+
     try {
       // 1. Fetch recent mentions
       // Using search as it's often more reliable in agent-twitter-client for finding mentions of a specific user
@@ -353,6 +361,8 @@ export async function startX(): Promise<Scraper> {
       }
     } catch (e: any) {
       console.error('❌ Error in X polling loop:', e.message);
+    } finally {
+      isPolling = false;
     }
   }, 60000); // Poll every 60 seconds
 
