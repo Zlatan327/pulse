@@ -120,7 +120,8 @@ export async function handleCatchup(ctx: Context): Promise<void> {
     const timeFrom = summary.timespan.from.toLocaleString();
     const timeTo = summary.timespan.to.toLocaleString();
 
-    let caption = `🔊 Pulse Catchup — ${summary.messageCount} messages`;
+    const userMention = ctx.from?.username ? `@${ctx.from.username}` : (ctx.from?.first_name || 'there');
+    let caption = `Hey ${userMention}! 🔊 Pulse Catchup — ${summary.messageCount} messages`;
     caption += `\n📅 ${timeFrom} → ${timeTo}`;
     caption += `\n\n🎙️ **Reply to this message with a voice note to ask me follow-up questions!**`;
 

@@ -132,7 +132,7 @@ async function generateAndSendSummary(
   const timeTo = summary.timespan.to.toLocaleString();
   const timeWindowHours = Math.round((summary.timespan.to.getTime() - summary.timespan.from.getTime()) / (1000 * 60 * 60));
 
-  let replyContent = `🔊 **Pulse Catchup** — ${summary.messageCount} messages`;
+  let replyContent = `Hey <@${interaction.user.id}>! 🔊 **Pulse Catchup** — ${summary.messageCount} messages`;
   replyContent += `\n📅 ${timeFrom} → ${timeTo}`;
 
   // Add task checklist if tasks were found
