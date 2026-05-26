@@ -109,27 +109,27 @@ export async function handleCatchup(ctx: Context): Promise<void> {
   // Update status
   const statusMsg = await ctx.reply(`⏳ Summarizing ${messages.length} messages...`, { reply_to_message_id: ctx.message?.message_id });
 
-  // Generate summary
-  const summary = await summarizeMessages(messages, mode, requester, targetUser);
-
-  const timeFrom = summary.timespan.from.toLocaleString();
-  const timeTo = summary.timespan.to.toLocaleString();
-  const userMention = ctx.from?.username ? `@${ctx.from.username}` : (ctx.from?.first_name || 'there');
-
-  let caption = `Hey ${userMention}! `;
-  caption += format === 'text' ? `📝 Pulse Text Summary — ${summary.messageCount} messages` : `🔊 Pulse Catchup — ${summary.messageCount} messages`;
-  caption += `\n📅 ${timeFrom} → ${timeTo}\n\n`;
-
-  if (format === 'text') {
-    caption += `**Summary:**\n${summary.text}\n\n`;
-  }
-
-  const taskList = formatTaskChecklist(summary.tasks);
-  if (taskList) caption += `${taskList}\n\n`;
-
-  caption += `#PulseSummary`;
-
   try {
+    // Generate summary
+    const summary = await summarizeMessages(messages, mode, requester, targetUser);
+
+    const timeFrom = summary.timespan.from.toLocaleString();
+    const timeTo = summary.timespan.to.toLocaleString();
+    const userMention = ctx.from?.username ? `@${ctx.from.username}` : (ctx.from?.first_name || 'there');
+
+    let caption = `Hey ${userMention}! `;
+    caption += format === 'text' ? `📝 Pulse Text Summary — ${summary.messageCount} messages` : `🔊 Pulse Catchup — ${summary.messageCount} messages`;
+    caption += `\n📅 ${timeFrom} → ${timeTo}\n\n`;
+
+    if (format === 'text') {
+      caption += `**Summary:**\n${summary.text}\n\n`;
+    }
+
+    const taskList = formatTaskChecklist(summary.tasks);
+    if (taskList) caption += `${taskList}\n\n`;
+
+    caption += `#PulseSummary`;
+
     const sendTarget = delivery === 'private' ? ctx.from?.id : chatId;
 
     if (!sendTarget) {

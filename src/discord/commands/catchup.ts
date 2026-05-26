@@ -122,65 +122,74 @@ async function generateAndSendSummary(
   // Update status
   await interaction.editReply(`⏳ Summarizing ${messages.length} messages...`);
 
-  // Generate summary
-  const summary = await summarizeMessages(messages, mode, requester, targetUser);
+  try {
+    // Generate summary
+    const summary = await summarizeMessages(messages, mode, requester, targetUser);
 
-  const timeFrom = summary.timespan.from.toLocaleString();
-  const timeTo = summary.timespan.to.toLocaleString();
+    const timeFrom = summary.timespan.from.toLocaleString();
+    const timeTo = summary.timespan.to.toLocaleString();
 
-  let replyContent = `Hey <@${interaction.user.id}>! 🔊 **Pulse Catchup** — ${summary.messageCount} messages`;
-  if (format === 'text') replyContent = `Hey <@${interaction.user.id}>! 📝 **Pulse Text Summary** — ${summary.messageCount} messages`;
-  
-  replyContent += `\n📅 ${timeFrom} → ${timeTo}\n\n`;
+    let replyContent = `Hey <@${interaction.user.id}>! 🔊 **Pulse Catchup** — ${summary.messageCount} messages`;
+    if (format === 'text') replyContent = `Hey <@${interaction.user.id}>! 📝 **Pulse Text Summary** — ${summary.messageCount} messages`;
+    
+    replyContent += `\n📅 ${timeFrom} → ${timeTo}\n\n`;
 
-  if (format === 'text') {
-    replyContent += `**Summary:**\n${summary.text}\n\n`;
-  }
+    if (format === 'text') {
+      replyContent += `**Summary:**\n${summary.text}\n\n`;
+    }
 
-  // Add task checklist if tasks were found
-  const taskList = formatTaskChecklist(summary.tasks);
-  if (taskList) {
-    replyContent += `${taskList}\n\n`;
-  }
+    // Add task checklist if tasks were found
+    const taskList = formatTaskChecklist(summary.tasks);
+    if (taskList) {
+      replyContent += `${taskList}\n\n`;
+    }
 
-  replyContent += `#PulseSummary`;
+    replyContent += `#PulseSummary`;
 
-  const payload: any = { content: replyContent };
+    const payload: any = { content: replyContent };
 
-  let audioPath: string | null = null;
-  if (format !== 'text') {
-    const audio = await generateSpeech(summary.text);
-    audioPath = audio.filePath;
-    const { AttachmentBuilder } = await import('discord.js');
-    const audioFile = new AttachmentBuilder(audio.buffer, { name: 'catchup.mp3' });
-    payload.files = [audioFile];
-    payload.content += `\n\n🎙️ **Reply to this message with a voice note to ask me follow-up questions!**`;
-  }
+    let audioPath: string | null = null;
+    if (format !== 'text') {
+      const audio = await generateSpeech(summary.text);
+      audioPath = audio.filePath;
+      const { AttachmentBuilder } = await import('discord.js');
+      const audioFile = new AttachmentBuilder(audio.buffer, { name: 'catchup.mp3' });
+      payload.files = [audioFile];
+      payload.content += `\n\n🎙️ **Reply to this message with a voice note to ask me follow-up questions!**`;
+    }
 
-  // Handle Delivery Mode
-  if (delivery === 'private') {
-    await interaction.user.send(payload).catch(async () => {
-      await interaction.followUp({ content: '❌ I could not send you a DM. Please check your privacy settings.', ephemeral: true });
-    });
-    await interaction.editReply('✅ Summary sent to your DMs!');
-  } else {
-    const message = await interaction.editReply(payload);
-    // Start a thread
-    if (interaction.channel && !interaction.channel.isThread()) {
-      try {
-        await message.startThread({
-          name: `Pulse Summary - ${new Date().toLocaleTimeString()}`,
-          autoArchiveDuration: 60,
-        });
-      } catch (e) {
-        console.warn('Could not start thread:', e);
+    // Handle Delivery Mode
+    if (delivery === 'private') {
+      await interaction.user.send(payload).catch(async () => {
+        await interaction.followUp({ content: '❌ I could not send you a DM. Please check your privacy settings.', ephemeral: true });
+      });
+      await interaction.editReply('✅ Summary sent to your DMs!');
+    } else {
+      const message = await interaction.editReply(payload);
+      // Start a thread
+      if (interaction.channel && !interaction.channel.isThread()) {
+        try {
+          await message.startThread({
+            name: `Pulse Summary - ${new Date().toLocaleTimeString()}`,
+            autoArchiveDuration: 60,
+          });
+        } catch (e) {
+          console.warn('Could not start thread:', e);
+        }
       }
     }
+
+    // Record catchup
+    markCatchup(chatId, 'discord', messages.length);
+
+    // Cleanup
+    if (audioPath) cleanupAudioFile(audioPath);
+  } catch (error: any) {
+    console.error('❌ Discord catchup error:', error);
+    if (error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('quota')) {
+      await interaction.editReply(`❌ **Rate Limit Exceeded:** I've been summarizing too much recently! Please wait a minute and try again.`);
+    } else {
+      await interaction.editReply(`❌ Something went wrong generating your catchup.`);
+    }
   }
-
-  // Record catchup
-  markCatchup(chatId, 'discord', messages.length);
-
-  // Cleanup
-  if (audioPath) cleanupAudioFile(audioPath);
 }
