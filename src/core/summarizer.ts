@@ -80,7 +80,7 @@ Your task is to create a spoken summary that will be converted to audio. Follow 
 - End with any pending questions or items that need the listener's attention`;
 
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-flash-latest',
     systemInstruction: systemPrompt,
   });
 
@@ -91,7 +91,7 @@ Your task is to create a spoken summary that will be converted to audio. Follow 
   const tasksPromise = extractTasks(transcript);
   
   // Generate a short catchy title
-  const titlePromise = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+  const titlePromise = genAI.getGenerativeModel({ model: 'gemini-flash-latest' })
     .generateContent(`Provide a 3 to 5 word catchy title for this group chat transcript. Do not use quotes.\n\n${transcript}`)
     .then(res => res.response.text()?.trim().replace(/['"]+/g, '') || "Chat Summary")
     .catch(() => "Chat Summary");
@@ -113,7 +113,7 @@ Your task is to create a spoken summary that will be converted to audio. Follow 
 /** Extract action items from a conversation transcript */
 async function extractTasks(transcript: string): Promise<TaskItem[]> {
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-flash-latest',
     systemInstruction: `Extract action items and tasks from this group chat conversation.`,
     generationConfig: {
       responseMimeType: 'application/json',
@@ -172,7 +172,7 @@ Use the following structure:
 (A 1-2 sentence assessment of the team's mood and sentiment based on the chat.)`;
 
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.5-pro',
+    model: 'gemini-pro-latest',
     systemInstruction: systemPrompt,
   });
 
