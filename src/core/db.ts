@@ -30,11 +30,9 @@ export function initDatabase(): void {
 
     CREATE INDEX IF NOT EXISTS idx_messages_chat_time 
       ON messages(chat_id, platform, timestamp DESC);
-
-    CREATE INDEX IF NOT EXISTS idx_messages_external_id 
-      ON messages(external_id, platform);
   `);
 
+  // Migration: add external_id column if it doesn't exist (for older databases)
   try {
     db.exec(`ALTER TABLE messages ADD COLUMN external_id TEXT;`);
   } catch (e) {
@@ -42,6 +40,8 @@ export function initDatabase(): void {
   }
 
   db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_messages_external_id 
+      ON messages(external_id, platform);
     CREATE INDEX IF NOT EXISTS idx_messages_platform 
       ON messages(platform);
 
