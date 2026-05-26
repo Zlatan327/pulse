@@ -13,6 +13,8 @@ import type { PlatformMessage, CatchupMode } from '../core/types.js';
 import fs from 'fs';
 import path from 'path';
 import { startXIntelligence } from './intelligence.js';
+import { downloadSpaceAudio } from './spaceHelper.js';
+import { transcribeAudio } from '../core/transcriber.js';
 
 /** Start the X (Twitter) adapter */
 export async function startX(): Promise<Scraper> {
@@ -101,37 +103,82 @@ export async function startX(): Promise<Scraper> {
             continue;
           }
 
-          // 3. Fetch the full thread
-          console.log(`🔍 Fetching thread: ${tweet.conversationId}`);
-          const threadQuery = `conversation_id:${tweet.conversationId}`;
-          const threadResults = scraper.searchTweets(threadQuery, 100, SearchMode.Latest);
+          // Convert to PlatformMessage format for the summarizer
+          let messages: PlatformMessage[] = [];
           
-          const threadTweets = [];
-          for await (const t of threadResults) {
-            threadTweets.push(t);
-            if (threadTweets.length >= 100) break;
+          // --- CHECK FOR SPACE URL ---
+          let spaceId: string | null = null;
+          const spaceRegex = /(?:x\.com|twitter\.com)\/i\/spaces\/([a-zA-Z0-9]+)/i;
+          const spaceMatch = tweet.text?.match(spaceRegex);
+          
+          if (spaceMatch) {
+            spaceId = spaceMatch[1];
+          } else if (tweet.inReplyToStatusId) {
+             // Check parent tweet
+             try {
+               const parent = await scraper.getTweet(tweet.inReplyToStatusId);
+               const parentMatch = parent?.text?.match(spaceRegex);
+               if (parentMatch) spaceId = parentMatch[1];
+             } catch(e) {}
           }
 
-          // Sort chronologically (oldest first)
-          threadTweets.sort((a, b) => (a.timeParsed?.getTime() || 0) - (b.timeParsed?.getTime() || 0));
+          if (spaceId) {
+             console.log(`🎙️ Space detected! ID: ${spaceId}`);
+             try {
+               const audioPath = await downloadSpaceAudio(spaceId, scraper);
+               console.log(`🎤 Transcribing Space audio...`);
+               const transcript = await transcribeAudio(audioPath);
+               messages.push({
+                  id: String(tweet.id),
+                  platform: 'x',
+                  chatId: `space_${spaceId}`,
+                  userId: String(tweet.userId),
+                  username: 'X Space Audio',
+                  text: `Transcript of X Space: ${transcript.text}`,
+                  messageType: 'text',
+                  filePath: null,
+                  timestamp: new Date()
+               });
+               cleanupTempFile(audioPath);
+             } catch (e: any) {
+               console.error('❌ Failed to process Space:', e.message);
+               // Continue as thread summary fallback if space fails?
+               // Let's just return early or fall back. We will fall back to empty messages if it fails.
+             }
+          }
 
-          if (threadTweets.length === 0) {
-            console.log('⚠️ Could not fetch thread tweets.');
+          // --- FETCH THREAD (IF NO SPACE) ---
+          if (messages.length === 0 && tweet.conversationId) {
+            console.log(`🔍 Fetching thread: ${tweet.conversationId}`);
+            const threadQuery = `conversation_id:${tweet.conversationId}`;
+            const threadResults = scraper.searchTweets(threadQuery, 100, SearchMode.Latest);
+            
+            const threadTweets = [];
+            for await (const t of threadResults) {
+              threadTweets.push(t);
+              if (threadTweets.length >= 100) break;
+            }
+
+            // Sort chronologically (oldest first)
+            threadTweets.sort((a, b) => (a.timeParsed?.getTime() || 0) - (b.timeParsed?.getTime() || 0));
+
+            messages = threadTweets.map(t => ({
+              id: String(t.id),
+              platform: 'x',
+              chatId: String(t.conversationId),
+              userId: String(t.userId),
+              username: t.username || 'Unknown',
+              text: t.text || null,
+              messageType: 'text',
+              filePath: null,
+              timestamp: t.timeParsed || new Date(),
+            }));
+          }
+
+          if (messages.length === 0) {
+            console.log('⚠️ Could not fetch thread tweets or process space.');
             continue;
           }
-
-          // Convert to PlatformMessage format for the summarizer
-          const messages: PlatformMessage[] = threadTweets.map(t => ({
-            id: String(t.id),
-            platform: 'x',
-            chatId: String(t.conversationId),
-            userId: String(t.userId),
-            username: t.username || 'Unknown',
-            text: t.text || null,
-            messageType: 'text',
-            filePath: null,
-            timestamp: t.timeParsed || new Date(),
-          }));
 
           // 4. Summarize (fetch user settings first if possible)
           console.log(`🧠 Summarizing ${messages.length} tweets...`);
