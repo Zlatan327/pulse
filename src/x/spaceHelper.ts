@@ -19,10 +19,27 @@ if (ffmpegStatic) {
  * @returns The path to the downloaded MP3 file
  */
 export async function downloadSpaceAudio(spaceId: string, scraper: Scraper): Promise<string> {
-  console.log(`🎙️ Fetching audio stream status for Space ${spaceId}...`);
+  console.log(`🎙️ Fetching details for Space ${spaceId}...`);
   
-  // Cast scraper to any to access getAudioSpaceStatus if not in types
-  const status = await (scraper as any).getAudioSpaceStatus(spaceId);
+  // Cast scraper to any to access space methods
+  const s = scraper as any;
+  const audioSpace = await s.getAudioSpaceById(spaceId);
+
+  if (!audioSpace || !audioSpace.metadata) {
+    throw new Error('Could not retrieve Space metadata.');
+  }
+
+  if (audioSpace.metadata.state !== 'Ended') {
+    throw new Error(`Space is currently ${audioSpace.metadata.state}. Pulse only summarizes recorded/ended spaces.`);
+  }
+
+  const mediaKey = audioSpace.metadata.media_key;
+  if (!mediaKey) {
+    throw new Error('Media key not found for this Space.');
+  }
+
+  console.log(`🎙️ Fetching audio stream status for media key ${mediaKey}...`);
+  const status = await s.getAudioSpaceStreamStatus(mediaKey);
   
   if (!status || !status.source || !status.source.location) {
     throw new Error('Could not retrieve HLS stream URL for this Space.');
