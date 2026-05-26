@@ -42,7 +42,6 @@ export function initDatabase(): void {
   }
 
   db.exec(`
-
     CREATE INDEX IF NOT EXISTS idx_messages_platform 
       ON messages(platform);
 
@@ -56,6 +55,14 @@ export function initDatabase(): void {
 
     CREATE INDEX IF NOT EXISTS idx_catchup_chat 
       ON catchup_log(chat_id, platform, timestamp DESC);
+
+    CREATE TABLE IF NOT EXISTS chat_settings (
+      chat_id TEXT NOT NULL,
+      platform TEXT NOT NULL,
+      daily_digest BOOLEAN DEFAULT 0,
+      digest_time TEXT DEFAULT '18:00',
+      PRIMARY KEY (chat_id, platform)
+    );
 
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
@@ -254,4 +261,45 @@ export function deleteMessageByExternalId(externalId: string, platform: Platform
     DELETE FROM messages 
     WHERE external_id = ? AND platform = ?
   `).run(externalId, platform);
+}
+
+export interface ChatSettings {
+  chatId: string;
+  platform: Platform;
+  dailyDigest: boolean;
+  digestTime: string;
+}
+
+export function getChatSettings(chatId: string, platform: Platform): ChatSettings {
+  const row = db.prepare(`SELECT * FROM chat_settings WHERE chat_id = ? AND platform = ?`).get(chatId, platform) as any;
+  if (!row) {
+    db.prepare(`INSERT INTO chat_settings (chat_id, platform, daily_digest, digest_time) VALUES (?, ?, 0, '18:00')`).run(chatId, platform);
+    return { chatId, platform, dailyDigest: false, digestTime: '18:00' };
+  }
+  return {
+    chatId: row.chat_id,
+    platform: row.platform as Platform,
+    dailyDigest: Boolean(row.daily_digest),
+    digestTime: row.digest_time
+  };
+}
+
+export function updateChatSettings(chatId: string, platform: Platform, updates: Partial<ChatSettings>): void {
+  const current = getChatSettings(chatId, platform);
+  const next = { ...current, ...updates };
+  db.prepare(`
+    UPDATE chat_settings 
+    SET daily_digest = ?, digest_time = ? 
+    WHERE chat_id = ? AND platform = ?
+  `).run(next.dailyDigest ? 1 : 0, next.digestTime, chatId, platform);
+}
+
+export function getAllActiveDailyChats(): ChatSettings[] {
+  const rows = db.prepare(`SELECT * FROM chat_settings WHERE daily_digest = 1`).all() as any[];
+  return rows.map(r => ({
+    chatId: r.chat_id,
+    platform: r.platform as Platform,
+    dailyDigest: Boolean(r.daily_digest),
+    digestTime: r.digest_time
+  }));
 }

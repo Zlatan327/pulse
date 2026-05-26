@@ -9,6 +9,8 @@ export async function startDiscord(): Promise<Client> {
   validatePlatform('discord');
   initDatabase();
 
+
+
   const client = new Client({
     intents: [
       GatewayIntentBits.Guilds,

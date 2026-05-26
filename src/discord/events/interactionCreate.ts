@@ -1,5 +1,6 @@
 import type { Client, ChatInputCommandInteraction } from 'discord.js';
 import { handleCatchup } from '../commands/catchup.js';
+import { handleDaily } from '../commands/daily.js';
 
 export function handleInteractionCreate(client: Client): void {
   client.on('interactionCreate', async (interaction) => {
@@ -9,6 +10,9 @@ export function handleInteractionCreate(client: Client): void {
       switch (interaction.commandName) {
         case 'catchup':
           await handleCatchup(interaction as ChatInputCommandInteraction);
+          break;
+        case 'daily':
+          await handleDaily(interaction as ChatInputCommandInteraction);
           break;
         default:
           console.warn(`⚠️ Unknown command: ${interaction.commandName}`);

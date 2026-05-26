@@ -68,6 +68,7 @@ Your task is to create a spoken summary that will be converted to audio. Follow 
 - ${modeInstruction}${targetUserInstruction}
 - Keep it under ${Math.round(targetWords)} words (approximately ${config.summaryTargetDuration} seconds when spoken)
 - Start with a brief time context (e.g., "In the last few hours..." or "Since you've been away...")
+- AGGRESSIVELY PRIORITIZE and highlight any messages containing the exact word "IMPORTANT" (all caps). These are critical and must be mentioned first.
 - Highlight KEY decisions, important updates, and action items
 - Attribute actions and statements to people by their name
 - If someone shared a file or document, summarize its contents and state who shared it
@@ -144,4 +145,37 @@ async function extractTasks(transcript: string): Promise<TaskItem[]> {
   }
 }
 
+/** Generate a detailed markdown document (meeting minutes) from the transcript */
+export async function generateDetailedMinutes(messages: PlatformMessage[]): Promise<string> {
+  if (messages.length === 0) return '# Daily Pulse Minutes\n\nNo messages were sent today.';
+  
+  const transcript = buildTranscript(messages);
 
+  const systemPrompt = `You are Pulse, an AI assistant generating detailed daily meeting minutes for a group chat.
+Your task is to create a well-formatted Markdown document.
+Focus heavily on any messages that contain the word "IMPORTANT" (in all caps) — these should be highlighted at the top of the document.
+
+Use the following structure:
+# Daily Pulse Minutes
+*Generated on ${new Date().toLocaleDateString()}*
+
+## 🚨 Important Updates
+(List any critical updates, especially those flagged with the word IMPORTANT by users. If none, write "No critical updates flagged today.")
+
+## 📝 Discussion Summary
+(A detailed breakdown of the topics discussed, grouped logically rather than chronologically.)
+
+## ✅ Action Items
+(A list of tasks, who is assigned, and any deadlines.)
+
+## 📊 Vibe Check
+(A 1-2 sentence assessment of the team's mood and sentiment based on the chat.)`;
+
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-2.5-pro',
+    systemInstruction: systemPrompt,
+  });
+
+  const response = await model.generateContent(transcript);
+  return response.response.text() || '# Daily Pulse Minutes\n\nFailed to generate minutes.';
+}

@@ -85,69 +85,79 @@ export async function handleCatchup(ctx: Context): Promise<void> {
     return;
   }
 
-  // Send typing indicator
-  await ctx.reply('⏳ Catching up on recent messages...');
+  let sinceDate: Date | undefined;
+  if (timeframeStr) {
+    sinceDate = parseTimeframeToDate(timeframeStr) || undefined;
+  }
+
+  // Get messages
+  if (!sinceDate) {
+    const lastCatchup = getLastCatchup(chatId, 'telegram');
+    if (lastCatchup) sinceDate = lastCatchup.timestamp;
+  }
+
+  const messages = getRecentMessages(chatId, 'telegram', config.summaryMaxMessages, sinceDate);
+
+  if (messages.length === 0) {
+    await ctx.reply('✅ You\'re all caught up! No new messages since your last catchup.', { reply_to_message_id: ctx.message?.message_id });
+    return;
+  }
+
+  // Update status
+  const statusMsg = await ctx.reply(`⏳ Summarizing ${messages.length} messages...`, { reply_to_message_id: ctx.message?.message_id });
+
+  // Generate summary
+  const summary = await summarizeMessages(messages, mode, ctx.from?.first_name, targetUser);
+
+  const timeFrom = summary.timespan.from.toLocaleString();
+  const timeTo = summary.timespan.to.toLocaleString();
+  const userMention = ctx.from?.username ? `@${ctx.from.username}` : (ctx.from?.first_name || 'there');
+
+  let caption = `Hey ${userMention}! `;
+  caption += format === 'text' ? `📝 Pulse Text Summary — ${summary.messageCount} messages` : `🔊 Pulse Catchup — ${summary.messageCount} messages`;
+  caption += `\n📅 ${timeFrom} → ${timeTo}\n\n`;
+
+  if (format === 'text') {
+    caption += `**Summary:**\n${summary.text}\n\n`;
+  }
+
+  const taskList = formatTaskChecklist(summary.tasks);
+  if (taskList) caption += `${taskList}\n\n`;
+
+  caption += `#PulseSummary`;
 
   try {
-    // Get messages since last catchup (if no explicit timeframe/reply provided), or recent messages
-    if (!sinceDate) {
-      const lastCatchup = getLastCatchup(chatId, 'telegram');
-      if (lastCatchup) sinceDate = lastCatchup.timestamp;
+    const sendTarget = delivery === 'private' ? ctx.from?.id : chatId;
+    
+    if (!sendTarget) {
+      throw new Error('Cannot determine target');
     }
 
-    const messages = getRecentMessages(
-      chatId,
-      'telegram',
-      config.summaryMaxMessages,
-      sinceDate
-    );
-
-    if (messages.length === 0) {
-      await ctx.reply('✅ You\'re all caught up! No new messages since your last catchup.');
-      return;
+    if (format === 'text') {
+      await ctx.api.sendMessage(sendTarget, caption, { parse_mode: 'Markdown' });
+    } else {
+      const audio = await generateSpeech(summary.text);
+      const oggPath = await convertToOggOpus(audio.filePath);
+      
+      caption += `\n\n🎙️ **Reply to this message with a voice note to ask me follow-up questions!**`;
+      
+      const inputFile = new InputFile(oggPath);
+      await ctx.api.sendVoice(sendTarget, inputFile, { caption, parse_mode: 'Markdown' });
+      
+      cleanupTempFile(oggPath);
+      cleanupAudioFile(audio.filePath);
     }
 
-    // Generate summary
-    const summary = await summarizeMessages(messages, mode, requester, targetUser);
-
-    // Generate audio
-    const audio = await generateSpeech(summary.text);
-
-    // Convert to OGG/Opus for Telegram voice message
-    const oggPath = await convertToOggOpus(audio.filePath);
-
-    // Send voice message
-    const timeFrom = summary.timespan.from.toLocaleString();
-    const timeTo = summary.timespan.to.toLocaleString();
-
-    const userMention = ctx.from?.username ? `@${ctx.from.username}` : (ctx.from?.first_name || 'there');
-    let caption = `Hey ${userMention}! 🔊 Pulse Catchup — ${summary.messageCount} messages`;
-    caption += `\n📅 ${timeFrom} → ${timeTo}`;
-    caption += `\n\n🎙️ **Reply to this message with a voice note to ask me follow-up questions!**`;
-
-    await ctx.replyWithVoice(new InputFile(oggPath), {
-      caption,
-    });
-
-    // Send task checklist if tasks were found
-    const taskList = formatTaskChecklist(summary.tasks);
-    if (taskList) {
-      await ctx.reply(taskList);
+    if (delivery === 'private' && ctx.chat?.type !== 'private') {
+      await ctx.api.editMessageText(chatId, statusMsg.message_id, `✅ I have sent the summary to your DMs!`);
+    } else {
+      await ctx.api.deleteMessage(chatId, statusMsg.message_id).catch(() => {});
     }
 
-    // Record catchup and log summary
     markCatchup(chatId, 'telegram', messages.length);
-    if (userSettings?.userId) {
-      logSummary(userSettings.userId, 'telegram', summary.title || 'Telegram Summary', Math.round(audio.durationMs / 1000));
-    }
 
-    // Cleanup
-    cleanupAudioFile(audio.filePath);
-    cleanupTempFile(oggPath);
-
-    console.log(`📋 TG Catchup delivered: ${messages.length} messages → ${(audio.durationMs / 1000).toFixed(1)}s audio`);
   } catch (error) {
-    console.error('❌ Telegram catchup error:', error);
-    await ctx.reply('❌ Something went wrong generating your catchup. Please try again.');
+    console.error('❌ Failed to deliver Telegram catchup:', error);
+    await ctx.api.editMessageText(chatId, statusMsg.message_id, `❌ Something went wrong generating your catchup.`);
   }
 }

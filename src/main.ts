@@ -32,13 +32,16 @@ async function main(): Promise<void> {
 
   const startPromises: Promise<void>[] = [];
 
+  let discordClient: any;
+  let telegramBot: any;
+
   // Start Discord adapter
   if (platforms.includes('discord')) {
     startPromises.push(
       (async () => {
         try {
           const { startDiscord } = await import('./discord/index.js');
-          await startDiscord();
+          discordClient = await startDiscord();
           console.log('✅ Discord adapter started');
         } catch (error) {
           console.error('❌ Failed to start Discord adapter:', error);
@@ -53,7 +56,7 @@ async function main(): Promise<void> {
       (async () => {
         try {
           const { startTelegram } = await import('./telegram/index.js');
-          await startTelegram();
+          telegramBot = await startTelegram();
           console.log('✅ Telegram adapter started');
         } catch (error) {
           console.error('❌ Failed to start Telegram adapter:', error);
@@ -85,6 +88,9 @@ async function main(): Promise<void> {
 
   // Wait for all platforms to initialize
   await Promise.all(startPromises);
+
+  const { startScheduler } = await import('./core/index.js');
+  startScheduler({ discordClient, telegramBot });
 
   console.log('');
   console.log('🚀 Pulse is running! Press Ctrl+C to stop.');

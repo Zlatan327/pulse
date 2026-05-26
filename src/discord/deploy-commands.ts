@@ -4,36 +4,61 @@ import { config } from '../core/config.js';
 const commands = [
   new SlashCommandBuilder()
     .setName('catchup')
-    .setDescription('Get an audio summary of recent messages in this channel')
-    .addIntegerOption(option =>
-      option
-        .setName('messages')
-        .setDescription('Number of messages to summarize (default: 100)')
-        .setRequired(false)
-        .setMinValue(5)
-        .setMaxValue(500)
-    )
-    .addStringOption(option => 
-      option.setName('mode')
-        .setDescription('Persona or style for the summary')
-        .addChoices(
-          { name: 'Standard (Professional)', value: 'standard' },
-          { name: 'Marcus (Fun & Energetic)', value: 'fun' },
-          { name: 'RoastMaster (Sarcastic)', value: 'roast' },
-          { name: 'Storyteller (Dramatic)', value: 'story' },
-          { name: 'Urgent (Action-oriented)', value: 'urgent' },
-          { name: 'Executive Manager', value: 'manager' },
-          { name: 'Empathic Supporter', value: 'empathic' },
-          { name: 'For Me (Personalized)', value: 'for-me' }
-        ))
+    .setDescription('Summarize recent messages in this channel')
     .addStringOption(option => 
       option.setName('timeframe')
-        .setDescription('Timeframe to summarize (e.g. 1hr, 2hrs, 1d)'))
+        .setDescription('How far back to summarize (e.g., "15m", "2h", "1d")')
+        .setRequired(false))
+    .addIntegerOption(option => 
+      option.setName('messages')
+        .setDescription('Number of messages to summarize (default: 50)')
+        .setRequired(false))
+    .addStringOption(option =>
+      option.setName('mode')
+        .setDescription('Choose a personality for the summary')
+        .addChoices(
+          { name: 'Standard (Default)', value: 'standard' },
+          { name: 'Fun & Energetic', value: 'fun' },
+          { name: 'Roast Mode (Sarcastic)', value: 'roast' },
+          { name: 'Epic Story', value: 'story' },
+          { name: 'Urgent/Action-oriented', value: 'urgent' },
+          { name: 'Executive/Manager', value: 'manager' },
+          { name: 'Empathic/Supportive', value: 'empathic' },
+          { name: 'Just For Me', value: 'for-me' }
+        )
+        .setRequired(false))
     .addUserOption(option => 
       option.setName('user')
-        .setDescription('Focus the summary specifically on this user'))
-    .toJSON(),
-];
+        .setDescription('Focus the summary strictly on this user')
+        .setRequired(false))
+    .addStringOption(option =>
+      option.setName('format')
+        .setDescription('Output format: audio or text')
+        .addChoices(
+          { name: 'Audio (Default)', value: 'audio' },
+          { name: 'Text Only', value: 'text' }
+        )
+        .setRequired(false))
+    .addStringOption(option =>
+      option.setName('delivery')
+        .setDescription('Where to deliver the summary')
+        .addChoices(
+          { name: 'Public (Thread)', value: 'public' },
+          { name: 'Private (DM)', value: 'private' }
+        )
+        .setRequired(false)),
+  new SlashCommandBuilder()
+    .setName('daily')
+    .setDescription('Enable or disable automated daily summaries for this channel')
+    .addBooleanOption(option =>
+      option.setName('enable')
+        .setDescription('Enable or disable the daily digest')
+        .setRequired(true))
+    .addStringOption(option =>
+      option.setName('time')
+        .setDescription('Time of day to deliver in 24h format (e.g., 18:00)')
+        .setRequired(false))
+].map(command => command.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(config.discord.token);
 

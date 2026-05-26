@@ -36,6 +36,8 @@ export async function handleCatchup(interaction: ChatInputCommandInteraction): P
   const timeframeStr = interaction.options.getString('timeframe');
   const targetUserObj = interaction.options.getUser('user');
   const targetUser = targetUserObj ? (targetUserObj.displayName || targetUserObj.username) : undefined;
+  const format = interaction.options.getString('format') || 'audio';
+  const delivery = interaction.options.getString('delivery') || 'public';
   let sinceDate = (timeframeStr ? parseTimeframeToDate(timeframeStr) : undefined) || undefined;
 
   // Check if we have enough messages
@@ -79,7 +81,7 @@ export async function handleCatchup(interaction: ChatInputCommandInteraction): P
         return;
       }
 
-      await generateAndSendSummary(interaction, platformMessages, chatId, mode, requester, targetUser);
+      await generateAndSendSummary(interaction, platformMessages, chatId, mode, requester, targetUser, format, delivery);
     } catch (error) {
       console.error('❌ Failed to fetch Discord messages:', error);
       await interaction.editReply('❌ Failed to fetch messages. Make sure I have the "Read Message History" permission.');
@@ -105,7 +107,7 @@ export async function handleCatchup(interaction: ChatInputCommandInteraction): P
     return;
   }
 
-  await generateAndSendSummary(interaction, messages, chatId, mode, requester, targetUser);
+  await generateAndSendSummary(interaction, messages, chatId, mode, requester, targetUser, format, delivery);
 }
 
 async function generateAndSendSummary(
@@ -114,7 +116,9 @@ async function generateAndSendSummary(
   chatId: string,
   mode: CatchupMode,
   requester: string,
-  targetUser?: string
+  targetUser?: string,
+  format?: string,
+  delivery?: string
 ): Promise<void> {
   // Update status
   await interaction.editReply(`⏳ Summarizing ${messages.length} messages...`);
@@ -122,35 +126,62 @@ async function generateAndSendSummary(
   // Generate summary
   const summary = await summarizeMessages(messages, mode, requester, targetUser);
 
-  // Generate audio
-  const audio = await generateSpeech(summary.text);
-
-  // Build response
-  const audioFile = new AttachmentBuilder(audio.buffer, { name: 'catchup.mp3' });
-
   const timeFrom = summary.timespan.from.toLocaleString();
   const timeTo = summary.timespan.to.toLocaleString();
-  const timeWindowHours = Math.round((summary.timespan.to.getTime() - summary.timespan.from.getTime()) / (1000 * 60 * 60));
 
   let replyContent = `Hey <@${interaction.user.id}>! 🔊 **Pulse Catchup** — ${summary.messageCount} messages`;
-  replyContent += `\n📅 ${timeFrom} → ${timeTo}`;
+  if (format === 'text') replyContent = `Hey <@${interaction.user.id}>! 📝 **Pulse Text Summary** — ${summary.messageCount} messages`;
+  
+  replyContent += `\n📅 ${timeFrom} → ${timeTo}\n\n`;
+
+  if (format === 'text') {
+    replyContent += `**Summary:**\n${summary.text}\n\n`;
+  }
 
   // Add task checklist if tasks were found
   const taskList = formatTaskChecklist(summary.tasks);
   if (taskList) {
-    replyContent += `\n\n${taskList}`;
+    replyContent += `${taskList}\n\n`;
   }
 
-  await interaction.editReply({
-    content: `${replyContent}\n\n🎙️ **Reply to this message with a voice note to ask me follow-up questions!**`,
-    files: [audioFile],
-  });
+  replyContent += `#PulseSummary`;
+
+  const payload: any = { content: replyContent };
+
+  let audioPath: string | null = null;
+  if (format !== 'text') {
+    const audio = await generateSpeech(summary.text);
+    audioPath = audio.filePath;
+    const { AttachmentBuilder } = await import('discord.js');
+    const audioFile = new AttachmentBuilder(audio.buffer, { name: 'catchup.mp3' });
+    payload.files = [audioFile];
+    payload.content += `\n\n🎙️ **Reply to this message with a voice note to ask me follow-up questions!**`;
+  }
+
+  // Handle Delivery Mode
+  if (delivery === 'private') {
+    await interaction.user.send(payload).catch(async () => {
+      await interaction.followUp({ content: '❌ I could not send you a DM. Please check your privacy settings.', ephemeral: true });
+    });
+    await interaction.editReply('✅ Summary sent to your DMs!');
+  } else {
+    const message = await interaction.editReply(payload);
+    // Start a thread
+    if (interaction.channel && !interaction.channel.isThread()) {
+      try {
+        await message.startThread({
+          name: `Pulse Summary - ${new Date().toLocaleTimeString()}`,
+          autoArchiveDuration: 60,
+        });
+      } catch (e) {
+        console.warn('Could not start thread:', e);
+      }
+    }
+  }
 
   // Record catchup
   markCatchup(chatId, 'discord', messages.length);
 
   // Cleanup
-  cleanupAudioFile(audio.filePath);
-
-  console.log(`📋 Catchup delivered: ${messages.length} messages → ${(audio.durationMs / 1000).toFixed(1)}s audio`);
+  if (audioPath) cleanupAudioFile(audioPath);
 }

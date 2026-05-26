@@ -1,10 +1,11 @@
 export * from './types.js';
 export { config, validatePlatform } from './config.js';
-export { initDatabase, logMessage, getRecentMessages, getMessageById, getLastCatchup, markCatchup, getMessageCount, closeDatabase, logSummary, getUserSettingsByPlatformId, deleteMessageByExternalId } from './db.js';
-export { summarizeMessages } from './summarizer.js';
+export { initDatabase, logMessage, getRecentMessages, getMessageById, getLastCatchup, markCatchup, getMessageCount, closeDatabase, logSummary, getUserSettingsByPlatformId, deleteMessageByExternalId, getChatSettings, updateChatSettings, getAllActiveDailyChats, type ChatSettings } from './db.js';
+export { summarizeMessages, generateDetailedMinutes } from './summarizer.js';
 export { transcribeAudio } from './transcriber.js';
 export { translateText, shouldTranslate, getLanguageName } from './translator.js';
 export { generateSpeech, cleanupAudioFile } from './tts.js';
 export { convertToMp3, convertToOggOpus, cleanupTempFile } from './audio.js';
 export { formatTaskChecklist, formatTasksCompact } from './tasks.js';
 export { handleVoiceQuery } from './agent.js';
+export { startScheduler, type SchedulerClients } from './scheduler.js';

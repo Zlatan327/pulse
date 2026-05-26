@@ -5,6 +5,8 @@ import { messageLogger } from './middleware/logger.js';
 import { handleCatchup } from './commands/catchup.js';
 import { handleAudioReply } from './commands/audioReply.js';
 import { handleHelp } from './commands/help.js';
+import { handleDaily } from './commands/daily.js';
+import { handleDaily } from './commands/daily.js';
 
 export type PulseContext = FileFlavor<Context>;
 
@@ -25,6 +27,7 @@ export async function startTelegram(): Promise<Bot<PulseContext>> {
   // Register commands
   bot.command('catchup', handleCatchup);
   bot.command('help', handleHelp);
+  bot.command('daily', handleDaily);
   bot.on('message:audio', handleAudioReply);
   bot.on('message:voice', handleAudioReply);
 
