@@ -55,12 +55,13 @@ export async function startX(): Promise<Scraper> {
     if (!loggedIn) {
       console.log('⏳ Logging into X (Twitter) using username/password...');
       try {
-        await scraper.login(config.x.username, config.x.password, config.x.email);
+        await scraper.login();
         const newCookies = await scraper.getCookies();
         fs.writeFileSync(cookiesPath, JSON.stringify(newCookies));
         console.log('✅ Logged into X and saved session cookies!');
       } catch (e: any) {
-        console.error('❌ Failed to log into X. Check your credentials.', e.message);
+        console.error('❌ Failed to log into X:', e.message);
+        console.error('💡 Tip: Set X_COOKIES_AUTH_TOKEN and X_COOKIES_CT0 in .env to use cookie-based auth.');
         throw e;
       }
     }

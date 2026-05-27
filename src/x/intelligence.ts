@@ -153,7 +153,7 @@ export function startXIntelligence(scraper: Scraper) {
           const sinceId = lastSeenMap.get(item.id);
           if (sinceId) query += ` since_id:${sinceId}`;
 
-          const results = scraper.searchTweets(query, 20, SearchMode.Latest);
+          const results = scraper.searchTweets(query, 20);
           
           for await (const t of results) {
             messages.push({
@@ -179,7 +179,7 @@ export function startXIntelligence(scraper: Scraper) {
           const sinceId = lastSeenMap.get(item.id);
           if (sinceId) query += ` since_id:${sinceId}`;
 
-          const results = scraper.searchTweets(query, 20, SearchMode.Latest);
+          const results = scraper.searchTweets(query, 20);
           
           for await (const t of results) {
             messages.push({

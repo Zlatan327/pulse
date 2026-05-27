@@ -1,10 +1,21 @@
-import { chromium, Browser, Page } from 'playwright-extra';
+import { chromium } from 'playwright-extra';
+import type { Browser, Page } from 'playwright-core';
 import stealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { config } from '../core/config.js';
-import type { Tweet } from 'agent-twitter-client';
 
 // Add stealth plugin
 chromium.use(stealthPlugin());
+
+/** Lightweight tweet type — replaces agent-twitter-client's Tweet */
+export interface Tweet {
+  id?: string;
+  text?: string;
+  username?: string;
+  userId?: string;
+  conversationId?: string;
+  inReplyToStatusId?: string;
+  timeParsed?: Date;
+}
 
 export class PlaywrightScraper {
   private browser: Browser | null = null;
