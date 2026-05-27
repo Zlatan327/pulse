@@ -119,7 +119,7 @@ export async function startX(): Promise<Scraper> {
 
         // 2. Check if the tweet is asking for a summary
         const text = tweet.text?.toLowerCase() || '';
-        if (text.includes('summary') || text.includes('catchup') || text.includes('catch up') || text.includes('pulse')) {
+        if (text.includes('pulze this')) {
           console.log(`\n🔔 Processing mention from @${tweet.username}: ${tweet.text}`);
           
           if (!tweet.conversationId) {
