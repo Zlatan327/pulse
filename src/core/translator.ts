@@ -1,7 +1,10 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 import { config } from './config.js';
 
-const genAI = new GoogleGenerativeAI(config.gemini.apiKey);
+const openai = new OpenAI({
+  apiKey: config.mimo.apiKey,
+  baseURL: config.mimo.baseUrl,
+});
 
 /** Map of ISO 639-1 codes to language names */
 const LANGUAGE_NAMES: Record<string, string> = {
@@ -34,14 +37,15 @@ export async function translateText(
   const fromName = getLanguageName(fromLanguage);
   const toName = getLanguageName(target);
 
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
-    systemInstruction: `You are a professional translator. Translate the following text from ${fromName} to ${toName}. Maintain the original tone, meaning, and nuance. Return ONLY the translated text, nothing else.`,
-  });
-
   try {
-    const response = await model.generateContent(text);
-    const translated = response.response.text() || text;
+    const response = await openai.chat.completions.create({
+      model: config.mimo.model,
+      messages: [
+        { role: 'system', content: `You are a professional translator. Translate the following text from ${fromName} to ${toName}. Maintain the original tone, meaning, and nuance. Return ONLY the translated text, nothing else.` },
+        { role: 'user', content: text }
+      ]
+    });
+    const translated = response.choices[0]?.message?.content || text;
     console.log(`🌍 Translated ${fromName} → ${toName}: "${translated.substring(0, 60)}..."`);
     return translated;
   } catch (error) {

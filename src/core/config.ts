@@ -25,6 +25,11 @@ export const config = {
     baseUrl: optional('MIMO_BASE_URL', 'https://token-plan-cn.xiaomimimo.com/v1'),
     model: optional('MIMO_MODEL', 'mimo-v2.5-pro'),
   },
+  opencode: {
+    apiKey: optional('OPENCODE_API_KEY', ''),
+    baseUrl: optional('OPENCODE_BASE_URL', 'https://opencode.ai/zen/v1'),
+    model: optional('OPENCODE_MODEL', 'opencode/mimo-v2.5-free'),
+  },
   elevenlabs: {
     apiKey: required('ELEVENLABS_API_KEY'),
     voiceId: required('ELEVENLABS_VOICE_ID'),

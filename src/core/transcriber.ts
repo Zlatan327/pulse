@@ -5,13 +5,19 @@ import { config } from './config.js';
 import { convertToMp3 } from './audio.js';
 import type { TranscriptionResult } from './types.js';
 
-const genAI = new GoogleGenerativeAI(config.gemini.apiKey);
+// Gemini is optional — only used for native audio transcription
+const genAI = config.gemini.apiKey ? new GoogleGenerativeAI(config.gemini.apiKey) : null;
 
 /** Supported audio formats for Gemini */
 const GEMINI_FORMATS = ['.mp3', '.mp4', '.mpeg', '.mpga', '.m4a', '.wav', '.webm', '.ogg'];
 
 /** Transcribe an audio file using Gemini 1.5 Flash natively */
 export async function transcribeAudio(filePath: string): Promise<TranscriptionResult> {
+  if (!genAI) {
+    console.warn('⚠️ GEMINI_API_KEY not set — audio transcription is unavailable. Set GEMINI_API_KEY in .env to enable this feature.');
+    return { text: '[Audio transcription unavailable — GEMINI_API_KEY not configured]', language: 'unknown', confidence: 0 };
+  }
+
   const ext = path.extname(filePath).toLowerCase();
 
   // Convert to mp3 if not in a supported format

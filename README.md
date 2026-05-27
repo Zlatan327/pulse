@@ -233,10 +233,13 @@ npm start
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `MIMO_API_KEY` | ✅ | — | MiMo (or OpenAI-compatible) API key for summarization |
+| `MIMO_API_KEY` | ✅ | — | Primary AI provider key (Xiaomi MiMo — free) |
 | `MIMO_BASE_URL` | ❌ | `https://token-plan-cn.xiaomimimo.com/v1` | Custom OpenAI-compatible base URL |
 | `MIMO_MODEL` | ❌ | `mimo-v2.5-pro` | Model to use for summarization |
-| `GEMINI_API_KEY` | ❌ | — | Gemini API key (Optional for native transcription features) |
+| `OPENCODE_API_KEY` | ❌ | — | Secondary AI provider key (OpenCode Zen — free) |
+| `OPENCODE_BASE_URL` | ❌ | `https://opencode.ai/zen/v1` | OpenCode API base URL |
+| `OPENCODE_MODEL` | ❌ | `opencode/mimo-v2.5-free` | OpenCode model (1M context, reasoning) |
+| `GEMINI_API_KEY` | ❌ | — | Gemini API key (optional — enables native audio transcription) |
 | `ELEVENLABS_API_KEY` | ✅ | — | ElevenLabs API key for TTS |
 | `ELEVENLABS_VOICE_ID` | ✅ | — | ElevenLabs voice ID to use |
 | `ELEVENLABS_MODEL_ID` | ❌ | `eleven_flash_v2_5` | `eleven_flash_v2_5` (fast) or `eleven_multilingual_v2` (quality) |
@@ -273,8 +276,8 @@ npm start
               │  └──────┬──────┘  │
               │         │         │
               │  ┌──────▼──────┐  │
-              │  │ Summarizer  │  │  Gemini
-              │  │  + Tasks    │  │  1.5 Flash
+              │  │ Summarizer  │  │  MiMo / OpenCode
+              │  │  + Tasks    │  │  (OpenAI-compat)
               │  └──────┬──────┘  │
               │         │         │
               │  ┌──────▼──────┐  │
@@ -361,6 +364,7 @@ docker-compose up -d --build
 | Service | Free Tier | Approximate Cost |
 |---------|-----------|-----------------|
 | **Xiaomi MiMo** | Free | **Free** |
+| **OpenCode Zen** | Free (limited time) | **Free** |
 | **ElevenLabs** | 10K chars/mo (~20 catchups) | $5/mo for 30K chars (~60 catchups) |
 | **VPS** | — | $5-10/mo (1GB RAM minimum) |
 

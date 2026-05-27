@@ -1,9 +1,12 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 import { config } from './config.js';
 import type { PlatformMessage, AudioResult } from './types.js';
 import { generateSpeech } from './tts.js';
 
-const genAI = new GoogleGenerativeAI(config.gemini.apiKey);
+const openai = new OpenAI({
+  apiKey: config.mimo.apiKey,
+  baseURL: config.mimo.baseUrl,
+});
 
 /**
  * Handle direct voice queries to Pulse (agentic behavior)
@@ -22,7 +25,7 @@ export async function handleVoiceQuery(
     })
     .join('\n');
 
-  const systemInstruction = `You are Pulse, an intelligent AI companion in a group chat. 
+  const systemPrompt = `You are Pulse, an intelligent AI companion in a group chat. 
 The user currently speaking to you is: ${requesterName || 'a group member'}.
 They are asking you a direct follow-up question via voice.
 
@@ -35,15 +38,16 @@ Your job is to answer their question conversationally based on the chat history.
 - Speak naturally, like a helpful human participant in the group.
 - If they ask you to perform an action you cannot do (like sending an email or booking a flight), politely decline.`;
 
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
-    systemInstruction,
-  });
-
   try {
     console.log(`🤖 Agent thinking... Query: "${query}"`);
-    const response = await model.generateContent(query);
-    const text = response.response.text() || 'I am not sure how to respond to that.';
+    const response = await openai.chat.completions.create({
+      model: config.mimo.model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: query }
+      ]
+    });
+    const text = response.choices[0]?.message?.content || 'I am not sure how to respond to that.';
     
     // Generate TTS for the response
     const audio = await generateSpeech(text);
