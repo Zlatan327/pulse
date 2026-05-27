@@ -1,4 +1,4 @@
-import { Scraper } from 'agent-twitter-client';
+import { PlaywrightScraper as Scraper } from './playwrightScraper.js';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegStatic from 'ffmpeg-static';
 import path from 'path';

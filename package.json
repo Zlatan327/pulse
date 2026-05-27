@@ -31,6 +31,7 @@
     "@grammyjs/files": "^1.2.0",
     "agent-twitter-client": "^0.0.18",
     "better-sqlite3": "^12.10.0",
+    "chrome-cookies-secure": "^3.0.2",
     "discord.js": "^14.26.4",
     "dotenv": "^17.4.2",
     "elevenlabs": "^1.59.0",
@@ -39,7 +40,13 @@
     "grammy": "^1.43.0",
     "https-proxy-agent": "^9.0.0",
     "node-cron": "^4.2.1",
-    "pdf-parse": "^2.4.5"
+    "openai": "^6.39.0",
+    "pdf-parse": "^2.4.5",
+    "playwright": "^1.60.0",
+    "playwright-extra": "^4.3.6",
+    "puppeteer": "^25.1.0",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "twitter-agent": "^0.1.1"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

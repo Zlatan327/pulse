@@ -1,8 +1,11 @@
-import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import OpenAI from 'openai';
 import { config } from './config.js';
 import type { PlatformMessage, ChatSummary, TaskItem, CatchupMode } from './types.js';
 
-const genAI = new GoogleGenerativeAI(config.gemini.apiKey);
+const openai = new OpenAI({
+  apiKey: config.mimo.apiKey,
+  baseURL: config.mimo.baseUrl,
+});
 
 /** Build a chronological transcript from messages */
 function buildTranscript(messages: PlatformMessage[]): string {
@@ -79,21 +82,24 @@ Your task is to create a spoken summary that will be converted to audio. Follow 
 - Do NOT say "here's your summary" or similar meta-commentary
 - End with any pending questions or items that need the listener's attention`;
 
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-flash-latest',
-    systemInstruction: systemPrompt,
+  const response = await openai.chat.completions.create({
+    model: config.mimo.model,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `Summarize this group chat conversation:\n\n${transcript}` }
+    ]
   });
-
-  const response = await model.generateContent(`Summarize this group chat conversation:\n\n${transcript}`);
-  const summaryText = response.response.text() || 'Unable to generate summary.';
+  const summaryText = response.choices[0]?.message?.content || 'Unable to generate summary.';
 
   // Extract tasks in a second call
   const tasksPromise = extractTasks(transcript);
   
-  // Generate a short catchy title
-  const titlePromise = genAI.getGenerativeModel({ model: 'gemini-flash-latest' })
-    .generateContent(`Provide a 3 to 5 word catchy title for this group chat transcript. Do not use quotes.\n\n${transcript}`)
-    .then(res => res.response.text()?.trim().replace(/['"]+/g, '') || "Chat Summary")
+  const titlePromise = openai.chat.completions.create({
+    model: config.mimo.model,
+    messages: [
+      { role: 'user', content: `Provide a 3 to 5 word catchy title for this group chat transcript. Do not use quotes.\n\n${transcript}` }
+    ]
+  }).then(res => res.choices[0]?.message?.content?.trim().replace(/['"]+/g, '') || "Chat Summary")
     .catch(() => "Chat Summary");
 
   const [tasks, title] = await Promise.all([tasksPromise, titlePromise]);
@@ -112,30 +118,16 @@ Your task is to create a spoken summary that will be converted to audio. Follow 
 
 /** Extract action items from a conversation transcript */
 async function extractTasks(transcript: string): Promise<TaskItem[]> {
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-flash-latest',
-    systemInstruction: `Extract action items and tasks from this group chat conversation.`,
-    generationConfig: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: SchemaType.ARRAY,
-        items: {
-          type: SchemaType.OBJECT,
-          properties: {
-            assignee: { type: SchemaType.STRING, description: "the person responsible (use their name from the chat)" },
-            description: { type: SchemaType.STRING, description: "what they need to do" },
-            deadline: { type: SchemaType.STRING, nullable: true, description: "the deadline if mentioned, or null" },
-            priority: { type: SchemaType.STRING, description: "\"high\", \"medium\", or \"low\" based on urgency" }
-          },
-          required: ["assignee", "description", "priority"]
-        }
-      }
-    }
-  });
-
   try {
-    const response = await model.generateContent(transcript);
-    const content = response.response.text() || '[]';
+    const response = await openai.chat.completions.create({
+      model: config.mimo.model,
+      messages: [
+        { role: 'system', content: `Extract action items and tasks from this group chat conversation. Respond ONLY with valid JSON. Use this schema: [{"assignee": "name", "description": "task description", "deadline": "date or null", "priority": "high/medium/low"}]` },
+        { role: 'user', content: transcript }
+      ],
+      response_format: { type: "json_object" }
+    });
+    const content = response.choices[0]?.message?.content || '{"tasks":[]}';
     const parsed = JSON.parse(content);
     const tasks: TaskItem[] = Array.isArray(parsed) ? parsed : (parsed.tasks || []);
     return tasks;
@@ -171,11 +163,12 @@ Use the following structure:
 ## 📊 Vibe Check
 (A 1-2 sentence assessment of the team's mood and sentiment based on the chat.)`;
 
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-pro-latest',
-    systemInstruction: systemPrompt,
+  const response = await openai.chat.completions.create({
+    model: config.mimo.model,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: transcript }
+    ]
   });
-
-  const response = await model.generateContent(transcript);
-  return response.response.text() || '# Daily Pulse Minutes\n\nFailed to generate minutes.';
+  return response.choices[0]?.message?.content || '# Daily Pulse Minutes\n\nFailed to generate minutes.';
 }

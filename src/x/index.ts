@@ -1,4 +1,4 @@
-import { Scraper, SearchMode } from 'agent-twitter-client';
+import { PlaywrightScraper as Scraper } from './playwrightScraper.js';
 import {
   config,
   validatePlatform,
@@ -39,15 +39,30 @@ export async function startX(): Promise<Scraper> {
   }
 
   if (!loggedIn) {
-    console.log('⏳ Logging into X (Twitter)...');
-    try {
-      await scraper.login(config.x.username, config.x.password, config.x.email);
-      const newCookies = await scraper.getCookies();
-      fs.writeFileSync(cookiesPath, JSON.stringify(newCookies));
-      console.log('✅ Logged into X and saved session cookies!');
-    } catch (e: any) {
-      console.error('❌ Failed to log into X. Check your credentials.', e.message);
-      throw e;
+    if (config.x.cookies.authToken && config.x.cookies.ct0) {
+      console.log('🍪 Logging into X using provided cookies from .env...');
+      await scraper.setCookies([
+        `auth_token=${config.x.cookies.authToken}; Domain=.twitter.com; Path=/; Secure; HttpOnly`,
+        `ct0=${config.x.cookies.ct0}; Domain=.twitter.com; Path=/; Secure; HttpOnly`
+      ]);
+      
+      // 🔥 BYPASS: X disabled verify_credentials.json, so isLoggedIn() always returns false.
+      // If we have cookies, we assume they are valid and skip calling .login() to avoid the guest token error (code 34).
+      loggedIn = true;
+      console.log('✅ Logged into X using provided .env cookies! (Bypassed verify_credentials check)');
+    }
+    
+    if (!loggedIn) {
+      console.log('⏳ Logging into X (Twitter) using username/password...');
+      try {
+        await scraper.login(config.x.username, config.x.password, config.x.email);
+        const newCookies = await scraper.getCookies();
+        fs.writeFileSync(cookiesPath, JSON.stringify(newCookies));
+        console.log('✅ Logged into X and saved session cookies!');
+      } catch (e: any) {
+        console.error('❌ Failed to log into X. Check your credentials.', e.message);
+        throw e;
+      }
     }
   } else {
     console.log('✅ Logged into X using saved cookies!');
@@ -85,7 +100,7 @@ export async function startX(): Promise<Scraper> {
       // 1. Fetch recent mentions
       // Using search as it's often more reliable in agent-twitter-client for finding mentions of a specific user
       const query = `@${config.x.username}`;
-      const searchResults = scraper.searchTweets(query, 10, SearchMode.Latest);
+      const searchResults = scraper.searchTweets(query, 10);
       
       const mentions = [];
       for await (const tweet of searchResults) {
@@ -159,7 +174,7 @@ export async function startX(): Promise<Scraper> {
           if (messages.length === 0 && tweet.conversationId) {
             console.log(`🔍 Fetching thread: ${tweet.conversationId}`);
             const threadQuery = `conversation_id:${tweet.conversationId}`;
-            const threadResults = scraper.searchTweets(threadQuery, 100, SearchMode.Latest);
+            const threadResults = scraper.searchTweets(threadQuery, 100);
             
             const threadTweets = [];
             for await (const t of threadResults) {
@@ -373,7 +388,7 @@ export async function startX(): Promise<Scraper> {
 }
 
 // If run directly
-const isDirectRun = process.argv[1]?.includes('x/index');
+const isDirectRun = process.argv[1]?.includes('x/index') || process.argv[1]?.includes('x\\index');
 if (isDirectRun) {
   startX().catch((error) => {
     console.error('❌ Failed to start X adapter:', error);

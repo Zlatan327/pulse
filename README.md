@@ -28,7 +28,7 @@ Type `/catchup` in any group chat. Pulse drops a **30-second audio clip** summar
 
 ### 1. `/catchup` — Instant Audio Summaries
 - Summarizes 50–500 messages into a concise, spoken audio clip
-- Powered by **Gemini 1.5 Flash** for intelligent summarization
+- Powered by **Xiaomi MiMo API** (or OpenAI-compatible endpoints) for intelligent summarization
 - Natural voice via **ElevenLabs** text-to-speech
 - Works across Discord, Telegram, and X
 - **Multiple Catchup Modes**: Tailor the tone of your summary:
@@ -80,7 +80,7 @@ Type `/catchup` in any group chat. Pulse drops a **30-second audio clip** summar
 - **Node.js** 20+ ([download](https://nodejs.org))
 - **ffmpeg** ([download](https://ffmpeg.org)) — *included in Docker setup*
 - API keys for:
-  - [Google AI Studio](https://aistudio.google.com/app/apikey) (Gemini 1.5 Flash)
+  - [Xiaomi MiMo](https://token-plan-cn.xiaomimimo.com) (or any OpenAI-compatible API) for Summarization
   - [ElevenLabs](https://elevenlabs.io) (Text-to-Speech)
 - **Discord**: Channel commands (`/catchup`)
 - **Telegram**: Group commands (`/catchup fun 1hr`)
@@ -95,7 +95,7 @@ Type `/catchup` in any group chat. Pulse drops a **30-second audio clip** summar
    cd pulse
    npm install
    ```
-2. Copy the `.env.example` to `.env` and add your AI keys (OpenAI & ElevenLabs).
+2. Copy the `.env.example` to `.env` and add your AI keys (MiMo & ElevenLabs).
 3. Add your Bot tokens for Discord, Telegram, and X.
 
 ### 2. The Web Dashboard (Identity Hub)
@@ -117,7 +117,9 @@ Pulse includes a sleek Next.js dashboard where users can link their X and Telegr
 Start the core engine for your configured platforms:
 ```bash
 npm start
-```GEMINI_API_KEY=your_gemini_key
+```MIMO_API_KEY=your_mimo_api_key
+MIMO_BASE_URL=https://token-plan-cn.xiaomimimo.com/v1
+MIMO_MODEL=mimo-v2.5-pro
 ELEVENLABS_API_KEY=your_elevenlabs_key
 ELEVENLABS_VOICE_ID=your_voice_id
 
@@ -231,7 +233,10 @@ npm start
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `GEMINI_API_KEY` | ✅ | — | Gemini API key for summarization and transcription |
+| `MIMO_API_KEY` | ✅ | — | MiMo (or OpenAI-compatible) API key for summarization |
+| `MIMO_BASE_URL` | ❌ | `https://token-plan-cn.xiaomimimo.com/v1` | Custom OpenAI-compatible base URL |
+| `MIMO_MODEL` | ❌ | `mimo-v2.5-pro` | Model to use for summarization |
+| `GEMINI_API_KEY` | ❌ | — | Gemini API key (Optional for native transcription features) |
 | `ELEVENLABS_API_KEY` | ✅ | — | ElevenLabs API key for TTS |
 | `ELEVENLABS_VOICE_ID` | ✅ | — | ElevenLabs voice ID to use |
 | `ELEVENLABS_MODEL_ID` | ❌ | `eleven_flash_v2_5` | `eleven_flash_v2_5` (fast) or `eleven_multilingual_v2` (quality) |
@@ -296,8 +301,8 @@ Fetch messages from DB (since last catchup)
 Build chronological transcript
        │
        ▼
-Gemini: Generate spoken summary (~75 words for 30s)
-Gemini: Extract action items as JSON
+MiMo API: Generate spoken summary (~75 words for 30s)
+MiMo API: Extract action items as JSON
        │
        ▼
 ElevenLabs: Convert summary text to speech (MP3)
@@ -355,7 +360,7 @@ docker-compose up -d --build
 
 | Service | Free Tier | Approximate Cost |
 |---------|-----------|-----------------|
-| **Gemini 1.5 Flash** | 15 RPM / 1M tokens/min | **Free** (within limits) or ~$0.0001 per summary |
+| **Xiaomi MiMo** | Free | **Free** |
 | **ElevenLabs** | 10K chars/mo (~20 catchups) | $5/mo for 30K chars (~60 catchups) |
 | **VPS** | — | $5-10/mo (1GB RAM minimum) |
 

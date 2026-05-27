@@ -1,4 +1,4 @@
-import { Scraper, SearchMode } from 'agent-twitter-client';
+import { PlaywrightScraper as Scraper } from './playwrightScraper.js';
 import {
   config,
   summarizeMessages,
@@ -127,9 +127,9 @@ export function startXIntelligence(scraper: Scraper) {
           const sinceId = lastSeenMap.get(item.id);
           if (sinceId) query += ` since_id:${sinceId}`;
 
-          const results = scraper.searchTweets(query, 15, SearchMode.Latest);
+          const searchResults = scraper.searchTweets(query, 5);
           
-          for await (const t of results) {
+          for await (const t of searchResults) {
             messages.push({
               id: String(t.id),
               platform: 'x',

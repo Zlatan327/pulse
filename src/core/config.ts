@@ -18,7 +18,12 @@ function optional(key: string, fallback: string): string {
 export const config = {
   // AI Services
   gemini: {
-    apiKey: required('GEMINI_API_KEY'),
+    apiKey: optional('GEMINI_API_KEY', ''),
+  },
+  mimo: {
+    apiKey: optional('MIMO_API_KEY', 'tp-cap7t1dl21hzdl3a28kmmacmptiemfczt5rm81ekd8xnku6k'),
+    baseUrl: optional('MIMO_BASE_URL', 'https://token-plan-cn.xiaomimimo.com/v1'),
+    model: optional('MIMO_MODEL', 'mimo-v2.5-pro'),
   },
   elevenlabs: {
     apiKey: required('ELEVENLABS_API_KEY'),
@@ -38,6 +43,10 @@ export const config = {
     username: process.env.X_USERNAME || '',
     password: process.env.X_PASSWORD || '',
     email: process.env.X_EMAIL || '',
+    cookies: {
+      authToken: process.env.X_COOKIES_AUTH_TOKEN || '',
+      ct0: process.env.X_COOKIES_CT0 || '',
+    }
   },
 
   // General
