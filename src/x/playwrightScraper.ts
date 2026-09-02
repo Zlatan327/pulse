@@ -27,13 +27,11 @@ export class PlaywrightScraper {
 
     console.log('🚀 Initializing Playwright Stealth Scraper...');
     
-    // Pass proxy arguments to bypass VPN issues
     this.browser = await chromium.launch({
+      channel: 'chrome', // Use local system Chrome to bypass blocked binary downloads
       headless: true,
       args: [
-        '--disable-notifications',
-        '--proxy-server=direct://',
-        '--proxy-bypass-list=*'
+        '--disable-notifications'
       ]
     });
 
@@ -136,7 +134,23 @@ export class PlaywrightScraper {
 
     this.page!.on('response', responseHandler);
 
-    await this.page!.goto(url, { waitUntil: 'domcontentloaded' });
+    try {
+      await this.page!.goto(url, { waitUntil: 'domcontentloaded' });
+    } catch (e: any) {
+      console.log('⚠️ page.goto timed out, taking screenshot to diagnose...');
+      const fsMod = await import('fs');
+      const pathMod = await import('path');
+      const screenshotPath = pathMod.join(config.dataDir, 'timeout_screenshot.png');
+      await this.page!.screenshot({ path: screenshotPath });
+      
+      // Copy to artifacts dir so the AI can see it
+      const artifactsDir = pathMod.join(config.dataDir, '..', '..'); 
+      const destPath = pathMod.join(artifactsDir, `media__${Date.now()}.png`);
+      fsMod.copyFileSync(screenshotPath, destPath);
+      console.log(`📸 Saved screenshot to artifacts: ${destPath}`);
+      
+      throw e;
+    }
 
     await new Promise<void>((resolve) => {
       resolveSearch = resolve;

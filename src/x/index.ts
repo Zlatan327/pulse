@@ -90,7 +90,7 @@ export async function startX(): Promise<Scraper> {
   // Polling loop
   let isPolling = false;
   
-  setInterval(async () => {
+  const runPoll = async () => {
     if (isPolling) {
       console.log('⏳ Skipping X poll interval (previous execution still running)...');
       return;
@@ -380,7 +380,12 @@ export async function startX(): Promise<Scraper> {
     } finally {
       isPolling = false;
     }
-  }, 60000); // Poll every 60 seconds
+  };
+
+  setInterval(runPoll, 60000); // Poll every 60 seconds
+  
+  // Wait a few seconds for initialization to settle, then run immediately
+  setTimeout(() => runPoll(), 15000);
 
   // Start the X Intelligence Scheduler
   startXIntelligence(scraper);
